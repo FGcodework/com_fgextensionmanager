@@ -39,6 +39,14 @@ class HtmlView extends BaseHtmlView
 	protected $staleSince;
 
 	/**
+	 * @var  integer|null  Unix timestamp of the oldest "as of" data source
+	 *                     among everything shown below - unlike $staleSince,
+	 *                     this is always set (when there's at least one
+	 *                     tracked repo), not only on a genuine fetch failure.
+	 */
+	protected $lastChecked;
+
+	/**
 	 * @var  \Joomla\CMS\Object\CMSObject
 	 */
 	protected $canDoActions;
@@ -52,6 +60,7 @@ class HtmlView extends BaseHtmlView
 		$this->items        = $result->items;
 		$this->stale        = $result->stale;
 		$this->staleSince   = $result->stale_since;
+		$this->lastChecked  = $result->last_checked;
 		$this->canDoActions = ContentHelper::getActions('com_fgextensionmanager');
 
 		$this->addToolbar();

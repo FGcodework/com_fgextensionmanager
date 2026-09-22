@@ -33,11 +33,20 @@ class RepoHelper
 	private static ?int $oldestStaleTimestamp = null;
 
 	/**
+	 * The oldest "as of" timestamp among every primary updates.xml source
+	 * used to build the current catalog (whether served from a still-fresh
+	 * cache, just live-fetched, or a stale fallback) - an always-shown "last
+	 * checked" indicator, distinct from $anyStale/$oldestStaleTimestamp
+	 * above which only fire on genuine fetch failures. Reset alongside them.
+	 */
+	private static ?int $oldestDataTimestamp = null;
+
+	/**
 	 * Build the full catalog (one entry per configured repo).
 	 *
 	 * @param   boolean  $refresh  Bypass the local cache and re-fetch every repo.
 	 *
-	 * @return  object  {items: object[], stale: bool, stale_since: int|null}
+	 * @return  object  {items: object[], stale: bool, stale_since: int|null, last_checked: int|null}
 	 *                  stale is true if ANY repo's data shown came from an
 	 *                  expired cache because a live fetch failed - the
 	 *                  caller (e.g. the Refresh action) should not claim
@@ -47,6 +56,7 @@ class RepoHelper
 	{
 		self::$anyStale             = false;
 		self::$oldestStaleTimestamp = null;
+		self::$oldestDataTimestamp  = null;
 
 		$params       = ComponentHelper::getParams('com_fgextensionmanager');
 		$cacheMinutes = (int) $params->get('cache_minutes', 30);
@@ -237,9 +247,10 @@ class RepoHelper
 		usort($catalog, fn ($a, $b) => strcasecmp($a->name ?? $a->label, $b->name ?? $b->label));
 
 		return (object) [
-			'items'       => $catalog,
-			'stale'       => self::$anyStale,
-			'stale_since' => self::$oldestStaleTimestamp,
+			'items'        => $catalog,
+			'stale'        => self::$anyStale,
+			'stale_since'  => self::$oldestStaleTimestamp,
+			'last_checked' => self::$oldestDataTimestamp,
 		];
 	}
 
@@ -256,6 +267,22 @@ class RepoHelper
 		if (self::$oldestStaleTimestamp === null || $timestamp < self::$oldestStaleTimestamp)
 		{
 			self::$oldestStaleTimestamp = $timestamp;
+		}
+
+		self::noteDataTimestamp($timestamp);
+	}
+
+	/**
+	 * Tracks the OLDEST "as of" timestamp seen across every primary
+	 * updates.xml source this call, for the always-shown "last checked"
+	 * indicator - the most conservative reading when sources have different
+	 * ages (matches the same reasoning as noteStale() above).
+	 */
+	private static function noteDataTimestamp(int $timestamp): void
+	{
+		if (self::$oldestDataTimestamp === null || $timestamp < self::$oldestDataTimestamp)
+		{
+			self::$oldestDataTimestamp = $timestamp;
 		}
 	}
 
@@ -285,6 +312,7 @@ class RepoHelper
 
 				if ($content !== false && $content !== '')
 				{
+					self::noteDataTimestamp(filemtime($cacheFile) ?: time());
 					$results[$ownerRepo] = ['entries' => self::parseUpdatesXml($content), 'error' => null];
 
 					continue;
@@ -322,6 +350,7 @@ class RepoHelper
 
 				self::atomicCacheWrite($info['cache_file'], $response['body']);
 
+				self::noteDataTimestamp(time());
 				$results[$ownerRepo] = ['entries' => self::parseUpdatesXml($response['body']), 'error' => null];
 
 				continue;
@@ -424,10 +453,10 @@ class RepoHelper
 	 * since what you have installed" instead of just the latest entry, so a
 	 * check after a while away shows the full picture, not just the most
 	 * recent line. Falls back to just the single latest entry when
-	 * $sinceVersion is null (not installed) or isn't found in the changelog
-	 * at all (e.g. a very old version, or the changelog was reset) - can't
-	 * reliably bound a range without it. Returns null when already on the
-	 * newest version (nothing to show).
+	 * $sinceVersion is null (not installed), already the newest version
+	 * (up to date), or isn't found in the changelog at all (e.g. a very old
+	 * version, or the changelog was reset) - always returns at least the
+	 * latest entry when the changelog has one at all, never nothing.
 	 *
 	 * Known limitation: a repo whose CHANGELOG.md interleaves two builds
 	 * with independent version numbers (e.g. plg_system_fgemailremover's
@@ -488,15 +517,15 @@ class RepoHelper
 			}
 		}
 
-		// Already on the newest version - nothing changed since, nothing to show.
-		if ($cutoffIndex === 0)
-		{
-			return null;
-		}
-
-		// $sinceVersion not given, or not found in the changelog at all: fall
-		// back to just the single latest entry rather than guessing a range.
-		$included = $cutoffIndex !== null ? array_slice($sections, 0, $cutoffIndex) : [$sections[0]];
+		// $sinceVersion not given, already the newest, or not found in the
+		// changelog at all: fall back to just the single latest entry rather
+		// than showing nothing - always having at least the latest entry
+		// available is the behaviour this replaced, and losing it entirely
+		// for the (common) case of an up-to-date installed extension would
+		// be a regression, not an improvement.
+		$included = ($cutoffIndex !== null && $cutoffIndex > 0)
+			? array_slice($sections, 0, $cutoffIndex)
+			: [$sections[0]];
 
 		$parts = [];
 

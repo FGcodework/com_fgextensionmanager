@@ -22,7 +22,7 @@ class ExtensionsModel extends BaseDatabaseModel
 	/**
 	 * @param   boolean  $refresh  Bypass the local updates.xml cache.
 	 *
-	 * @return  object  {items: object[], stale: bool, stale_since: int|null}
+	 * @return  object  {items: object[], stale: bool, stale_since: int|null, last_checked: int|null}
 	 */
 	public function getItems(bool $refresh = false): object
 	{

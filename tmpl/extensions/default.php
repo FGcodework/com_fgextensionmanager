@@ -123,6 +123,10 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 	<div class="d-flex justify-content-between align-items-center mb-3">
 		<p class="mb-0 text-muted">
 			<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_EXTENSIONS_COUNT', count($this->items)); ?>
+			<?php if (!empty($this->lastChecked)) : ?>
+				&#183;
+				<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_LAST_CHECKED', Factory::getDate($this->lastChecked)->format('d.m.Y H:i')); ?>
+			<?php endif; ?>
 		</p>
 		<div>
 			<?php if ($canManage && $updateAvailableCount > 0) : ?>
@@ -153,8 +157,19 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 		</div>
 	<?php else : ?>
 
+	<div class="mb-2">
+		<input
+			type="search"
+			id="fgem-filter"
+			class="form-control form-control-sm"
+			style="max-width: 320px;"
+			placeholder="<?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_PLACEHOLDER'); ?>"
+			oninput="fgemFilterRows(this.value)"
+		>
+	</div>
+
 	<div class="table-responsive">
-	<table class="table">
+	<table class="table" id="fgem-table">
 		<thead>
 			<tr>
 				<th scope="col"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_NAME'); ?></th>
@@ -169,8 +184,13 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 		<tbody>
 		<?php foreach ($this->items as $i => $item) :
 			$meta = $stateMeta[$item->state] ?? $stateMeta['error'];
+			$searchText = htmlspecialchars(
+				mb_strtolower(($item->name ?? $item->label) . ' ' . ($item->technical_id ?? '') . ' ' . $item->owner_repo),
+				ENT_QUOTES,
+				'UTF-8'
+			);
 		?>
-			<tr<?php echo $item->is_self ? ' style="background-color: rgba(255, 107, 74, 0.08);"' : ($i % 2 === 1 ? ' class="table-light"' : ''); ?>>
+			<tr data-fgem-search="<?php echo $searchText; ?>"<?php echo $item->is_self ? ' style="background-color: rgba(255, 107, 74, 0.08);"' : ($i % 2 === 1 ? ' class="table-light"' : ''); ?>>
 				<td>
 					<strong class="text-primary"><?php echo htmlspecialchars($item->name ?? $item->label, ENT_QUOTES, 'UTF-8'); ?></strong>
 					<?php if ($item->is_self) : ?>
@@ -292,7 +312,7 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 				</td>
 			</tr>
 			<?php if (!empty($item->changelog_preview)) : ?>
-				<tr>
+				<tr class="fgem-detail-row">
 					<td colspan="7" class="p-0 border-0">
 						<div class="collapse" id="fgem-changelog-<?php echo (int) $i; ?>">
 							<div class="p-3 bg-light">
@@ -316,3 +336,19 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 	<input type="hidden" name="view" value="extensions">
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
+
+<script>
+function fgemFilterRows(query) {
+	query = query.toLowerCase().trim();
+	var rows = document.querySelectorAll('#fgem-table tbody tr[data-fgem-search]');
+	rows.forEach(function (row) {
+		var matches = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
+		row.style.display = matches ? '' : 'none';
+
+		var next = row.nextElementSibling;
+		if (next && next.classList.contains('fgem-detail-row')) {
+			next.style.display = matches ? '' : 'none';
+		}
+	});
+}
+</script>

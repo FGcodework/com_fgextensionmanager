@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.18.0
+- **Fixed a real regression from 1.17.0**: the changelog-since-installed-version feature
+  (1.17.0) returned nothing at all for an installed extension that was already up to date,
+  instead of falling back to showing the latest entry like every version before it did - so
+  the Changelog button silently disappeared for most installed extensions (anything NOT
+  showing "Update available"). `extractChangelogSince()` now always falls back to the single
+  latest entry when there's nothing newer to show, matching the pre-1.17.0 behaviour for that
+  case while keeping 1.17.0's actual improvement (showing everything since your version when
+  you genuinely are behind). Verified against the real `plg_system_fgemailremover` changelog:
+  the exact broken case (installed = latest version) now correctly returns the latest entry
+  instead of null.
+- Added a filter field above the extensions table (name/technical id/repository, plain
+  client-side JS, no extra request) - useful once the tracked list grows past a quick scan.
+  The hidden changelog-preview detail row now carries a marker class so it hides/shows
+  together with its parent row instead of staying orphaned when filtered out.
+- Added an always-visible "last checked" timestamp next to the extension count, distinct from
+  the stale-data warning banner (which only appears on a genuine fetch failure). Tracks the
+  OLDEST "as of" time among every source behind the current view - a still-fresh cache hit, a
+  fetch that just happened, or a stale fallback - the same conservative-timestamp reasoning
+  the stale banner already used, just always shown rather than only on failure.
+
 ## 1.17.0
 - Changelog preview now shows everything that changed since your installed version, not just
   the single latest entry - if you've been away for a while and are several versions behind,
