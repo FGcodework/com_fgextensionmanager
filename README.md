@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" width="120" alt="FG Extension Manager logo">
+</p>
+
 # FG Extension Manager
 
 ![Version](https://img.shields.io/badge/version-1.14.0-blue)
