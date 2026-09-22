@@ -396,4 +396,31 @@ window.addEventListener('load', fgemSyncDetailRowWidths);
 window.addEventListener('resize', fgemSyncDetailRowWidths);
 document.addEventListener('show.bs.collapse', fgemSyncDetailRowWidths);
 fgemSyncDetailRowWidths();
+
+// "Update All" (toolbar button, extensions.updateAll task) needs a confirm
+// dialog before submitting. <joomla-toolbar-button> is documented as a thin
+// wrapper around Joomla.submitbutton() specifically meant to be overridden
+// this way by extension developers. Capturing the ORIGINAL function first
+// and calling that (not Joomla.submitbutton() again) avoids the classic
+// "too much recursion" bug from calling the function through its own,
+// now-overridden name.
+(function () {
+	if (typeof Joomla === 'undefined' || typeof Joomla.submitbutton !== 'function') {
+		return;
+	}
+
+	var originalSubmitbutton = Joomla.submitbutton;
+
+	Joomla.submitbutton = function (task) {
+		if (task === 'extensions.updateAll') {
+			var msg = <?php echo json_encode(Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount)); ?>;
+
+			if (!confirm(msg)) {
+				return;
+			}
+		}
+
+		originalSubmitbutton(task);
+	};
+})();
 </script>

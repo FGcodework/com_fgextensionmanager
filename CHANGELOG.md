@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.20.1
+- Fixed "Update All" not working after 1.19.1's move to the native toolbar - the
+  `appendButton('Confirm', ...)` mechanism (copied from documentation about
+  `ToolbarHelper::deleteList()`'s internals, never actually tested live) turned out not to
+  work in practice. Switched to the same proven `ToolbarHelper::custom()` (Standard button)
+  mechanism Refresh already uses successfully, and handle the confirm dialog with a small JS
+  wrapper around `Joomla.submitbutton()` instead - documented as the supported override point
+  for exactly this (`<joomla-toolbar-button>` is "a thin wrapper around Joomla.submitbutton()
+  made to be overridden by extension developers"). Captures the ORIGINAL function before
+  overriding and calls that (not `Joomla.submitbutton()` again), avoiding the classic "too much
+  recursion" bug several other Joomla extensions have hit doing this incorrectly. Verified the
+  wrapper logic directly in Node: intercepts `extensions.updateAll` with the confirm dialog,
+  lets every other task (e.g. `extensions.refresh`) through untouched.
+
 ## 1.20.0
 - Added responsive card-stacking for the extensions table on narrow screens (max-width:
   767.98px), instead of relying only on horizontal scroll - the same general technique as his
