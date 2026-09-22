@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.21.1
+- **Critical regression from 1.20.3**: the hidden `task` field added to fix "Update All" broke
+  every per-row action button (Install/Update/Toggle/Uninstall) instead. Those buttons are
+  `<button name="task" value="...">` elements, and with the hidden field ALSO named "task" and
+  positioned later in the DOM (near the end of the form), a real click sent BOTH values -
+  verified directly with `FormData(form, submitter)` (the actual browser entry-list
+  construction algorithm): `task=extensions.install` from the clicked button, immediately
+  followed by an empty `task=` from the hidden field. PHP keeps the LAST value for a duplicate
+  POST key, so `$_POST['task']` ended up empty - the button silently did nothing beyond
+  reloading the page.
+  Fixed by making the hidden field `disabled` by default (disabled fields are excluded from
+  submission entirely, so it no longer competes with the row buttons at all), and having the
+  toolbar's JS enable it, set the value, and submit only for that one programmatic submission.
+  Verified both paths directly with `FormData`: a row-button click now sends only that button's
+  task value, and the toolbar submit sends only the hidden field's value - no collision either
+  way.
+
 ## 1.21.0
 - Confirmed working: "Update All" from the native toolbar (1.20.1-1.20.3's fixes together).
   Removed the temporary coral debug color from the button (1.20.2) now that it's no longer

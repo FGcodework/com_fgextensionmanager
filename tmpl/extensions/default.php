@@ -356,7 +356,7 @@ usort($this->items, function ($a, $b) use ($order) {
 
 	<?php endif; ?>
 
-	<input type="hidden" name="task" id="fgem-task-field" value="">
+	<input type="hidden" name="task" id="fgem-task-field" value="" disabled>
 	<input type="hidden" name="option" value="com_fgextensionmanager">
 	<input type="hidden" name="view" value="extensions">
 	<?php echo HTMLHelper::_('form.token'); ?>
@@ -430,7 +430,12 @@ fgemSyncDetailRowWidths();
 		var taskField = document.getElementById('fgem-task-field');
 
 		if (form && taskField) {
-			taskField.value = task;
+			// Disabled by default so it never collides with the per-row
+			// <button name="task" value="..."> elements (disabled form
+			// fields are excluded from submission entirely) - only enabled
+			// right here, for this one programmatic toolbar submit.
+			taskField.disabled = false;
+			taskField.value    = task;
 			form.submit();
 
 			return;
