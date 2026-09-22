@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.20.0
+- Added responsive card-stacking for the extensions table on narrow screens (max-width:
+  767.98px), instead of relying only on horizontal scroll - the same general technique as his
+  own `plg_system_fgresponsivetables`, built independently here (couldn't verify that plugin's
+  admin-area scope or its selector convention via search, so this doesn't depend on it being
+  installed or active). Below the breakpoint, each row becomes a bordered card with the
+  Extension name/description as its natural title and every other value shown with a bold
+  label (`data-label` attribute + CSS `::before`, the standard technique for this). Scoped
+  entirely to `#fgem-table` via CSS, so nothing else on the page is affected.
+
 ## 1.19.1
 - Moved "Update All" into the native Joomla toolbar too, next to Refresh - using the same
   underlying mechanism `ToolbarHelper::deleteList()` uses for its own confirm dialog

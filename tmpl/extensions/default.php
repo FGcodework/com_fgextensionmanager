@@ -144,6 +144,54 @@ usort($this->items, function ($a, $b) use ($order) {
 		</div>
 	<?php else : ?>
 
+	<style>
+		/*
+		 * Below the breakpoint, the table becomes a stack of labelled cards
+		 * instead of a horizontally-scrolling table - same general technique
+		 * as his own plg_system_fgresponsivetables, built independently here
+		 * so this table works regardless of what other plugins are active.
+		 * Scoped entirely to #fgem-table so nothing else on the page is
+		 * affected. The detail (changelog) row is excluded - it's already
+		 * forced full-width block unconditionally (see fgem-detail-row).
+		 */
+		@media (max-width: 767.98px) {
+			#fgem-table, #fgem-table thead, #fgem-table tbody, #fgem-table th, #fgem-table td, #fgem-table tr {
+				display: block;
+			}
+			#fgem-table thead tr {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+			}
+			#fgem-table tbody tr:not(.fgem-detail-row) {
+				border: 1px solid var(--bs-border-color, #dee2e6);
+				border-radius: 6px;
+				margin-bottom: 12px;
+				padding: 10px 12px;
+			}
+			#fgem-table tbody tr:not(.fgem-detail-row) td {
+				border: none;
+				padding: 4px 0 4px 42%;
+				position: relative;
+				text-align: left !important;
+			}
+			#fgem-table tbody tr:not(.fgem-detail-row) td[data-label]::before {
+				content: attr(data-label) ":";
+				position: absolute;
+				left: 0;
+				width: 38%;
+				font-weight: bold;
+				white-space: normal;
+			}
+			#fgem-table tbody tr:not(.fgem-detail-row) td:first-child {
+				padding-left: 0;
+			}
+		}
+	</style>
+
 	<div class="table-responsive">
 	<table class="table" id="fgem-table" style="table-layout: fixed; width: 100%;">
 		<thead>
@@ -190,13 +238,13 @@ usort($this->items, function ($a, $b) use ($order) {
 						<div class="small text-muted"><?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?></div>
 					<?php endif; ?>
 				</td>
-				<td>
+				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_STATE'), ENT_QUOTES, 'UTF-8'); ?>">
 					<span class="badge <?php echo $meta['badge']; ?>"><?php echo Text::_($meta['label']); ?></span>
 					<?php if (in_array($item->state, ['error', 'incompatible'], true) && !empty($item->error)) : ?>
 						<div class="small mt-1 <?php echo $item->state === 'error' ? 'text-danger' : 'text-muted'; ?>"><?php echo htmlspecialchars($item->error, ENT_QUOTES, 'UTF-8'); ?></div>
 					<?php endif; ?>
 				</td>
-				<td>
+				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ENABLED'), ENT_QUOTES, 'UTF-8'); ?>">
 					<?php if (!in_array($item->state, ['installed', 'update_available'], true)) : ?>
 						&#8212;
 					<?php elseif ($item->protected) : ?>
@@ -221,9 +269,9 @@ usort($this->items, function ($a, $b) use ($order) {
 						</span>
 					<?php endif; ?>
 				</td>
-				<td><?php echo $item->installed_version ? htmlspecialchars($item->installed_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></td>
-				<td><?php echo $item->available_version ? htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></td>
-				<td>
+				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $item->installed_version ? htmlspecialchars($item->installed_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></td>
+				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $item->available_version ? htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></td>
+				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_REPO'), ENT_QUOTES, 'UTF-8'); ?>">
 					<?php
 					$slashPos    = strpos($item->owner_repo, '/');
 					$repoDisplay = $slashPos !== false ? substr($item->owner_repo, $slashPos + 1) : $item->owner_repo;
@@ -232,7 +280,7 @@ usort($this->items, function ($a, $b) use ($order) {
 						<?php echo htmlspecialchars($repoDisplay, ENT_QUOTES, 'UTF-8'); ?>
 					</a>
 				</td>
-				<td class="text-end">
+				<td class="text-end" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'), ENT_QUOTES, 'UTF-8'); ?>">
 					<div>
 						<?php if ($canManage && $item->state === 'not_installed') : ?>
 							<button type="submit" name="task" value="extensions.install" formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.install&key=' . urlencode($item->key)); ?>" class="btn btn-success btn-sm">
