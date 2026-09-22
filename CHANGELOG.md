@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.18.1
+- Fixed the table columns shifting left when a changelog row expanded - added
+  `table-layout: fixed` with explicit column width percentages on the `<th>` elements, so
+  column widths come only from the header row and can never be affected by any row's content,
+  expanded or not.
+  That fix introduced a side effect: the expanded changelog box itself then rendered narrower
+  than the full table width in some cases (table-layout:fixed's colspan-width calculation
+  apparently isn't fully consistent across browsers). Fixed by setting an explicit
+  `width: 100%` directly on the colspanned cell and its inner wrapper divs, instead of relying
+  on the colspan-to-column-sum calculation. Also added `overflow-wrap: break-word` as a
+  defensive measure against any single long unbroken token forcing overflow.
+  Could not verify either fix visually in an actual browser from here - please confirm after
+  upload.
+
 ## 1.18.0
 - **Fixed a real regression from 1.17.0**: the changelog-since-installed-version feature
   (1.17.0) returned nothing at all for an installed extension that was already up to date,
