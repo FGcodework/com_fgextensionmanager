@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.18.4
+- Rebalanced column widths using the real rendered HTML as a guide: Extension (28% -> 40%) was
+  wrapping its description to two lines while Status/Enabled/Installed/Available - each just a
+  short badge or version number - sat mostly empty at 8-10% each. New split: Extension 40%,
+  Status 9%, Enabled 9%, Installed 7%, Available 7%, Repository 16%, Actions 12% (still sums
+  to 100%).
+
 ## 1.18.3
 - Got the actual rendered HTML from his site this time, which showed the real issue: even with
   `display: block` (1.18.2), a `<tr>`/`<td>` overridden that way still doesn't reliably resolve

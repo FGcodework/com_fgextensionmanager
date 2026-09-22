@@ -172,13 +172,13 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 	<table class="table" id="fgem-table" style="table-layout: fixed; width: 100%;">
 		<thead>
 			<tr>
-				<th scope="col" style="width: 28%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_NAME'); ?></th>
-				<th scope="col" style="width: 10%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_STATE'); ?></th>
+				<th scope="col" style="width: 40%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_NAME'); ?></th>
+				<th scope="col" style="width: 9%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_STATE'); ?></th>
 				<th scope="col" style="width: 9%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_ENABLED'); ?></th>
-				<th scope="col" style="width: 8%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'); ?></th>
-				<th scope="col" style="width: 8%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'); ?></th>
-				<th scope="col" style="width: 19%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_REPO'); ?></th>
-				<th scope="col" class="text-end" style="width: 18%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'); ?></th>
+				<th scope="col" style="width: 7%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'); ?></th>
+				<th scope="col" style="width: 7%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'); ?></th>
+				<th scope="col" style="width: 16%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_REPO'); ?></th>
+				<th scope="col" class="text-end" style="width: 12%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'); ?></th>
 			</tr>
 		</thead>
 		<tbody>
