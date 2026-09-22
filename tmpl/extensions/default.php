@@ -146,19 +146,40 @@ usort($this->items, function ($a, $b) use ($order) {
 
 	<style>
 		/*
-		 * Below the breakpoint, the table becomes a stack of labelled cards
-		 * instead of a horizontally-scrolling table - same general technique
-		 * as his own plg_system_fgresponsivetables, built independently here
-		 * so this table works regardless of what other plugins are active.
-		 * Scoped entirely to #fgem-table so nothing else on the page is
-		 * affected. The detail (changelog) row is excluded - it's already
-		 * forced full-width block unconditionally (see fgem-detail-row).
+		 * CSS Grid instead of an HTML <table>: a spanning cell (the changelog
+		 * detail row) uses grid-column: 1 / -1 natively, with zero risk of
+		 * affecting other rows' column widths - the exact problem
+		 * 1.18.1-1.18.3 spent three releases fighting with table-layout:fixed,
+		 * a display:block override on <tr>/<td>, and a JS width-measuring
+		 * workaround, none of which are needed here. Each "row" is a
+		 * display:contents wrapper so its cells become direct grid items of
+		 * the single outer grid (needed for column alignment across rows);
+		 * the wrapper itself generates no box, so striping/borders are
+		 * applied per-cell in PHP below rather than to the row.
 		 */
+		#fgem-table {
+			display: grid;
+			grid-template-columns: 40% 9% 9% 7% 7% 16% 12%;
+			width: 100%;
+		}
+		#fgem-table [role="row"] {
+			display: contents;
+		}
+		#fgem-table [role="columnheader"] {
+			font-weight: bold;
+			padding: 8px;
+			border-bottom: 2px solid var(--bs-border-color, #dee2e6);
+		}
+		#fgem-table [role="cell"] {
+			padding: 8px;
+			border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+		}
+
 		@media (max-width: 767.98px) {
-			#fgem-table, #fgem-table thead, #fgem-table tbody, #fgem-table th, #fgem-table td, #fgem-table tr {
-				display: block;
+			#fgem-table {
+				grid-template-columns: 1fr;
 			}
-			#fgem-table thead tr {
+			#fgem-table [role="columnheader"] {
 				position: absolute;
 				width: 1px;
 				height: 1px;
@@ -166,19 +187,13 @@ usort($this->items, function ($a, $b) use ($order) {
 				clip: rect(0, 0, 0, 0);
 				white-space: nowrap;
 			}
-			#fgem-table tbody tr:not(.fgem-detail-row) {
-				border: 1px solid var(--bs-border-color, #dee2e6);
-				border-radius: 6px;
-				margin-bottom: 12px;
-				padding: 10px 12px;
-			}
-			#fgem-table tbody tr:not(.fgem-detail-row) td {
-				border: none;
+			#fgem-table [role="cell"] {
 				padding: 4px 0 4px 42%;
 				position: relative;
 				text-align: left !important;
+				border-bottom: none;
 			}
-			#fgem-table tbody tr:not(.fgem-detail-row) td[data-label]::before {
+			#fgem-table [role="cell"][data-label]::before {
 				content: attr(data-label) ":";
 				position: absolute;
 				left: 0;
@@ -186,26 +201,29 @@ usort($this->items, function ($a, $b) use ($order) {
 				font-weight: bold;
 				white-space: normal;
 			}
-			#fgem-table tbody tr:not(.fgem-detail-row) td:first-child {
+			#fgem-table [role="cell"][data-row-start] {
 				padding-left: 0;
+				margin-top: 12px;
+				border-top: 1px solid var(--bs-border-color, #dee2e6);
+				padding-top: 10px;
+			}
+			#fgem-table [role="cell"][data-row-end] {
+				padding-bottom: 10px;
 			}
 		}
 	</style>
 
 	<div class="table-responsive">
-	<table class="table" id="fgem-table" style="table-layout: fixed; width: 100%;">
-		<thead>
-			<tr>
-				<th scope="col" style="width: 40%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_NAME'); ?></th>
-				<th scope="col" style="width: 9%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_STATE'); ?></th>
-				<th scope="col" style="width: 9%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_ENABLED'); ?></th>
-				<th scope="col" style="width: 7%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'); ?></th>
-				<th scope="col" style="width: 7%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'); ?></th>
-				<th scope="col" style="width: 16%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_REPO'); ?></th>
-				<th scope="col" class="text-end" style="width: 12%;"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'); ?></th>
-			</tr>
-		</thead>
-		<tbody>
+	<div id="fgem-table" role="table">
+		<div role="row">
+			<div role="columnheader"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_NAME'); ?></div>
+			<div role="columnheader"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_STATE'); ?></div>
+			<div role="columnheader"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_ENABLED'); ?></div>
+			<div role="columnheader"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'); ?></div>
+			<div role="columnheader"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'); ?></div>
+			<div role="columnheader"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_REPO'); ?></div>
+			<div role="columnheader" class="text-end"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'); ?></div>
+		</div>
 		<?php foreach ($this->items as $i => $item) :
 			$meta = $stateMeta[$item->state] ?? $stateMeta['error'];
 			$searchText = htmlspecialchars(
@@ -213,13 +231,16 @@ usort($this->items, function ($a, $b) use ($order) {
 				ENT_QUOTES,
 				'UTF-8'
 			);
+			// Computed once per row and applied identically to every cell
+			// below (striping can't be done via CSS nth-child here - the
+			// changelog detail "row" only ever contributes one grid item, so
+			// any positional CSS selector would drift out of sync exactly
+			// like the hidden-<tr> nth-child bug from 1.13.4).
+			$cellStyle = $i % 2 === 1 ? ' style="background-color: rgba(0,0,0,0.03);"' : '';
 		?>
-			<tr data-fgem-search="<?php echo $searchText; ?>"<?php echo $item->is_self ? ' style="background-color: rgba(255, 107, 74, 0.08);"' : ($i % 2 === 1 ? ' class="table-light"' : ''); ?>>
-				<td>
+			<div role="row" data-fgem-search="<?php echo $searchText; ?>">
+				<div role="cell" data-row-start<?php echo $cellStyle; ?>>
 					<strong class="text-primary"><?php echo htmlspecialchars($item->name ?? $item->label, ENT_QUOTES, 'UTF-8'); ?></strong>
-					<?php if ($item->is_self) : ?>
-						<span class="badge bg-primary"><?php echo Text::_('COM_FGEXTENSIONMANAGER_THIS_EXTENSION'); ?></span>
-					<?php endif; ?>
 					<?php if (!empty($item->technical_id)) : ?>
 						<div class="small"><code><?php echo htmlspecialchars($item->technical_id, ENT_QUOTES, 'UTF-8'); ?></code></div>
 					<?php endif; ?>
@@ -237,14 +258,14 @@ usort($this->items, function ($a, $b) use ($order) {
 						?>
 						<div class="small text-muted"><?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?></div>
 					<?php endif; ?>
-				</td>
-				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_STATE'), ENT_QUOTES, 'UTF-8'); ?>">
+				</div>
+				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_STATE'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>>
 					<span class="badge <?php echo $meta['badge']; ?>"><?php echo Text::_($meta['label']); ?></span>
 					<?php if (in_array($item->state, ['error', 'incompatible'], true) && !empty($item->error)) : ?>
 						<div class="small mt-1 <?php echo $item->state === 'error' ? 'text-danger' : 'text-muted'; ?>"><?php echo htmlspecialchars($item->error, ENT_QUOTES, 'UTF-8'); ?></div>
 					<?php endif; ?>
-				</td>
-				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ENABLED'), ENT_QUOTES, 'UTF-8'); ?>">
+				</div>
+				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ENABLED'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>>
 					<?php if (!in_array($item->state, ['installed', 'update_available'], true)) : ?>
 						&#8212;
 					<?php elseif ($item->protected) : ?>
@@ -268,10 +289,10 @@ usort($this->items, function ($a, $b) use ($order) {
 							<?php echo Text::_($item->enabled ? 'COM_FGEXTENSIONMANAGER_STATE_ENABLED' : 'COM_FGEXTENSIONMANAGER_STATE_DISABLED'); ?>
 						</span>
 					<?php endif; ?>
-				</td>
-				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $item->installed_version ? htmlspecialchars($item->installed_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></td>
-				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $item->available_version ? htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></td>
-				<td data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_REPO'), ENT_QUOTES, 'UTF-8'); ?>">
+				</div>
+				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php echo $item->installed_version ? htmlspecialchars($item->installed_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></div>
+				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php echo $item->available_version ? htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></div>
+				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_REPO'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>>
 					<?php
 					$slashPos    = strpos($item->owner_repo, '/');
 					$repoDisplay = $slashPos !== false ? substr($item->owner_repo, $slashPos + 1) : $item->owner_repo;
@@ -279,8 +300,8 @@ usort($this->items, function ($a, $b) use ($order) {
 					<a href="<?php echo htmlspecialchars($item->repo_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" title="<?php echo htmlspecialchars($item->owner_repo, ENT_QUOTES, 'UTF-8'); ?>">
 						<?php echo htmlspecialchars($repoDisplay, ENT_QUOTES, 'UTF-8'); ?>
 					</a>
-				</td>
-				<td class="text-end" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'), ENT_QUOTES, 'UTF-8'); ?>">
+				</div>
+				<div role="cell" class="text-end" data-row-end data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>>
 					<div>
 						<?php if ($canManage && $item->state === 'not_installed') : ?>
 							<button type="submit" name="task" value="extensions.install" formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.install&key=' . urlencode($item->key)); ?>" class="btn btn-success btn-sm">
@@ -298,7 +319,7 @@ usort($this->items, function ($a, $b) use ($order) {
 							</a>
 						<?php endif; ?>
 
-						<?php if ($canDelete && !$item->is_self && in_array($item->state, ['installed', 'update_available'], true)) : ?>
+						<?php if ($canDelete && in_array($item->state, ['installed', 'update_available'], true)) : ?>
 							<button
 								type="submit"
 								name="task"
@@ -333,11 +354,11 @@ usort($this->items, function ($a, $b) use ($order) {
 							<?php echo Text::_('COM_FGEXTENSIONMANAGER_LINK_CHANGELOG'); ?>
 						</a>
 					<?php endif; ?>
-				</td>
-			</tr>
+				</div>
+			</div>
 			<?php if (!empty($item->changelog_preview)) : ?>
-				<tr class="fgem-detail-row" style="display: block; width: 100%;">
-					<td colspan="7" class="p-0 border-0" style="display: block; width: 100%; box-sizing: border-box;">
+				<div role="row" class="fgem-detail-row">
+					<div role="cell" style="grid-column: 1 / -1;" class="p-0">
 						<div class="collapse" id="fgem-changelog-<?php echo (int) $i; ?>">
 							<div class="p-3 bg-light">
 								<div class="small" style="white-space: pre-wrap; overflow-wrap: break-word;"><?php echo htmlspecialchars($item->changelog_preview, ENT_QUOTES, 'UTF-8'); ?></div>
@@ -346,12 +367,11 @@ usort($this->items, function ($a, $b) use ($order) {
 								</a>
 							</div>
 						</div>
-					</td>
-				</tr>
+					</div>
+				</div>
 			<?php endif; ?>
 		<?php endforeach; ?>
-		</tbody>
-	</table>
+	</div>
 	</div>
 
 	<?php endif; ?>
@@ -365,42 +385,22 @@ usort($this->items, function ($a, $b) use ($order) {
 <script>
 function fgemFilterRows(query) {
 	query = query.toLowerCase().trim();
-	var rows = document.querySelectorAll('#fgem-table tbody tr[data-fgem-search]');
+	var rows = document.querySelectorAll('#fgem-table [role="row"][data-fgem-search]');
 	rows.forEach(function (row) {
 		var matches = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
-		row.style.display = matches ? '' : 'none';
+		// The row wrapper is display:contents by default (see the CSS) so its
+		// cells become direct grid items - clearing to '' here would fall
+		// back to the element's normal default (block), breaking the grid
+		// column alignment, so 'contents' has to be explicit, the same
+		// lesson 1.21.3 already applied to the old <tr> version of this row.
+		row.style.display = matches ? 'contents' : 'none';
 
 		var next = row.nextElementSibling;
 		if (next && next.classList.contains('fgem-detail-row')) {
-			// The detail row always needs display:block specifically (not the
-			// <tr> default of table-row - that's exactly what 1.18.2/1.18.3
-			// worked around) - clearing to '' here would silently lose that
-			// override and let the old column-shift bug back in.
-			next.style.display = matches ? 'block' : 'none';
+			next.style.display = matches ? 'contents' : 'none';
 		}
 	});
 }
-
-// The detail row's CSS width:100% doesn't reliably resolve against the
-// table's actual width in every browser once display is overridden to
-// block on a <tr>/<td> (percentage-width containing-block rules get
-// ambiguous there). Measuring the table's real rendered width in JS and
-// applying it as an explicit pixel value sidesteps that entirely.
-function fgemSyncDetailRowWidths() {
-	var table = document.getElementById('fgem-table');
-	if (!table) {
-		return;
-	}
-	var width = table.offsetWidth + 'px';
-	document.querySelectorAll('#fgem-table .fgem-detail-row > td').forEach(function (td) {
-		td.style.width = width;
-	});
-}
-
-window.addEventListener('load', fgemSyncDetailRowWidths);
-window.addEventListener('resize', fgemSyncDetailRowWidths);
-document.addEventListener('show.bs.collapse', fgemSyncDetailRowWidths);
-fgemSyncDetailRowWidths();
 
 // "Update All" and "Refresh" (toolbar buttons) need to set the task and
 // submit the form. Joomla's own Joomla.submitform() does this via

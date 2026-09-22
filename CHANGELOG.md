@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.22.0
+- **Architecture change**: replaced the HTML `<table>` with a CSS Grid (`display: grid` +
+  `display: contents` row wrappers), eliminating the root cause behind three separate releases
+  (1.18.1-1.18.3): a spanning changelog-detail cell needed `table-layout: fixed`, a
+  `display: block` override on `<tr>`/`<td>` to escape the table's column-width algorithm, and
+  a JS function measuring the table's real pixel width to work around that override not
+  resolving `width: 100%` reliably. A grid's spanning item (`grid-column: 1 / -1`) does this
+  natively - the column tracks are sized once, up front, from `grid-template-columns`, and no
+  item's content (spanning or not) can affect that. None of table-layout:fixed, the
+  display:block hack, or the width-measuring JS are needed anymore, all removed.
+  This also fixes 1.21.3's filter bug at the root instead of patching around it - there's no
+  `<tr>` losing an inline `display: block` override anymore, just a `display: contents` row
+  wrapper that the filter now explicitly restores to `'contents'` (not `''`) for the same
+  reason 1.21.3 already identified, verified directly this time against the actual grid
+  markup rather than the old table structure.
+  Striping is computed per-cell in PHP (same value applied to all cells in a row) rather than
+  via CSS - a `display: contents` row generates no box of its own to stripe, and a CSS
+  structural selector (`nth-child` or similar) would hit the exact same drift the hidden `<tr>`
+  caused in 1.13.4, since the changelog detail row still only ever contributes one cell.
+  The mobile card-stacking CSS (1.20.0) is rewritten for the grid structure but keeps the same
+  approach: `data-label` + `::before` for stacked labels below the breakpoint.
+  Could not verify this visually in a real browser from here - the DOM structure and the
+  filter's `display: contents` toggling were verified directly (a real DOM confirms the parent/
+  detail row pairing and display values are exactly as intended), but actual grid rendering
+  and column alignment need a live check after upload.
+
+## 1.21.4
+- Cleaned up dead code left over from 1.16.0 pulling the self row out of the main table: three
+  `$item->is_self` checks inside the table loop (the coral row tint, the "This extension"
+  badge, and the `!$item->is_self` uninstall-button guard) could never be true anymore, since
+  self is removed from `$this->items` before that loop ever runs - confirmed by grepping for
+  every remaining reference. Removed all three; no behaviour change, since they were
+  unreachable.
+- Documenting something that was silently dropped rather than decided: the self card has never
+  had a Settings button, despite 1.16.0's changelog listing "Update/Settings/Changelog" as
+  carried over from the table row. Leaving it out is the right call, just never actually said -
+  for this component specifically, `buildManageUrl()` for a component resolves to
+  `index.php?option=com_fgextensionmanager`, which is this very page, so a "Settings" link on
+  the self card would just point back at itself. Any real configuration this component has
+  lives in Options, already reachable from the toolbar (1.19.0).
+
 ## 1.21.3
 - Fixed the filter (1.18.0) silently undoing the column-shift fix (1.18.2/1.18.3) after
   filtering, even just typing then clearing the field: `fgemFilterRows()` reset a matched
