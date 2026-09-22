@@ -442,28 +442,4 @@ fgemSyncDetailRowWidths();
 		}
 	};
 })();
-
-// TEMPORARY (v1.20.2): colors the Update All toolbar button coral so it's
-// visually distinguishable from Refresh - purely so a quick look at the
-// toolbar confirms which version is actually running, no functional effect.
-// Found by its icon (icon-loop) rather than guessing the exact
-// <joomla-toolbar-button> internals, so it doesn't depend on markup details
-// that could differ across Joomla versions.
-(function () {
-	var icon = document.querySelector('#toolbar .icon-loop');
-
-	if (!icon) {
-		return;
-	}
-
-	var btn = icon.closest('a, button');
-
-	if (!btn) {
-		return;
-	}
-
-	btn.style.backgroundColor = '#FF6B4A';
-	btn.style.borderColor = '#FF6B4A';
-	btn.style.color = '#fff';
-})();
 </script>

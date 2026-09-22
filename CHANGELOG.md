@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.21.0
+- Confirmed working: "Update All" from the native toolbar (1.20.1-1.20.3's fixes together).
+  Removed the temporary coral debug color from the button (1.20.2) now that it's no longer
+  needed - purely a cleanup, no functional change.
+
 ## 1.20.3
 - Found the actual root cause of "Update All" doing nothing after confirming (1.20.1/1.20.2
   weren't wrong about the mechanism, just missing a piece): the form never had a dedicated
