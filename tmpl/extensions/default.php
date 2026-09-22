@@ -100,7 +100,7 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 		<?php foreach ($this->items as $i => $item) :
 			$meta = $stateMeta[$item->state] ?? $stateMeta['error'];
 		?>
-			<tr class="<?php echo $item->is_self ? 'border-start border-4 border-primary border-bottom border-2 bg-primary bg-opacity-10' : ($i % 2 === 1 ? 'table-light' : ''); ?>">
+			<tr<?php echo $item->is_self ? ' style="background-color: rgba(255, 107, 74, 0.08);"' : ($i % 2 === 1 ? ' class="table-light"' : ''); ?>>
 				<td>
 					<strong class="text-primary"><?php echo htmlspecialchars($item->name ?? $item->label, ENT_QUOTES, 'UTF-8'); ?></strong>
 					<?php if ($item->is_self) : ?>

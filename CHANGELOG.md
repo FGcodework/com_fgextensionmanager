@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.15.1
+- Removed the border treatment on the self row (1.15.0) - replaced with just a subtle
+  background tint (a light coral wash, matching the FG brand color, instead of Bootstrap's
+  blue "primary"). The "This extension" badge stays as the main indicator.
+
 ## 1.15.0
 - FG Extension Manager now tracks itself, always - `buildRepoRows()` injects its own repo
   (`FGcodework/com_fgextensionmanager`) into the tracked list unconditionally, so it shows up
