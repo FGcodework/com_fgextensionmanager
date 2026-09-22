@@ -1,0 +1,12 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors/IDEs
+.vscode/
+.idea/
+*.swp
+
+# Build artifacts (if any local packaging tooling is ever added)
+/dist/
+*.zip

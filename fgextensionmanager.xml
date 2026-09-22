@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="component" method="upgrade">
+	<name>COM_FGEXTENSIONMANAGER</name>
+	<author>Fero</author>
+	<creationDate>2026-09-21</creationDate>
+	<copyright>Copyright (C) 2026 Fero. All rights reserved.</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<version>1.14.0</version>
+	<description>COM_FGEXTENSIONMANAGER_XML_DESCRIPTION</description>
+	<namespace path="src">FG\Component\FgExtensionManager</namespace>
+
+	<administration>
+		<menu img="class:download">COM_FGEXTENSIONMANAGER</menu>
+		<submenu>
+			<menu view="extensions">COM_FGEXTENSIONMANAGER_MENU_EXTENSIONS</menu>
+		</submenu>
+		<files folder="admin">
+			<folder>language</folder>
+			<folder>services</folder>
+			<folder>src</folder>
+			<folder>tmpl</folder>
+			<file>access.xml</file>
+			<file>config.xml</file>
+			<file>fgextensionmanager.xml</file>
+			<file>CHANGELOG.md</file>
+			<file>LICENSE.txt</file>
+		</files>
+	</administration>
+
+	<updateservers>
+		<server type="extension" priority="1" name="FG Extension Manager">https://raw.githubusercontent.com/FGcodework/com_fgextensionmanager/master/updates.xml</server>
+	</updateservers>
+</extension>
