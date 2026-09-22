@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.17.0
+- Changelog preview now shows everything that changed since your installed version, not just
+  the single latest entry - if you've been away for a while and are several versions behind,
+  you see the full picture instead of only the most recent line. `extractLatestChangelogEntry()`
+  replaced with `extractChangelogSince()`: splits the file into all "## " sections, finds the
+  one matching the installed version, and includes every section newer than it. Falls back to
+  just the latest entry when not installed or the installed version isn't found in the
+  changelog, and returns nothing at all when already on the newest version.
+  Had to fix a real regex bug caught while testing this against the actual (60-section)
+  `plg_system_fgemailremover` changelog: the heading-capture group needs `[^\n]*` explicitly -
+  using `.` there under the `/s` (dotall) modifier let it swallow the entire rest of the file
+  instead of just one line, collapsing 60 sections down to 1 in an early version of this code.
+  Verified the corrected version against the real file: 60 sections parsed correctly, and all
+  four scenarios (several versions behind, already up to date, not installed, installed
+  version not found) produce the right output.
+  Noted limitation: a changelog interleaving two builds with independent version numbers
+  (exactly this repo's own format) could match the wrong build's entry if their version
+  numbers ever coincide - not an issue with his current numbering, not fixed here.
+
 ## 1.16.2
 - Moved the "N extension(s) tracked" count + Update All/Refresh toolbar below the self card
   instead of above it - the count only ever refers to the topic-discovered table, so it reads

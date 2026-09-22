@@ -94,7 +94,7 @@ class RepoHelper
 				'manage_url'          => null,
 				'download_url'        => null,
 				'changelog_url'       => null,
-				'changelog_preview'   => self::extractLatestChangelogEntry($changelogs[$ownerRepo] ?? null),
+				'changelog_preview'   => null,
 				'changelog_full_url'  => 'https://github.com/' . $ownerRepo . '/blob/' . $branch . '/CHANGELOG.md',
 				'sha256'              => null,
 				'sha384'              => null,
@@ -140,6 +140,7 @@ class RepoHelper
 					$phpMismatch->php_minimum,
 					PHP_VERSION
 				);
+				$item->changelog_preview = self::extractChangelogSince($changelogs[$ownerRepo] ?? null, null);
 
 				if ($label === '')
 				{
@@ -173,6 +174,7 @@ class RepoHelper
 					defined('JVERSION') ? JVERSION : '?',
 					$humanTargets ? implode(', ', $humanTargets) : implode(', ', $targets)
 				);
+				$item->changelog_preview = self::extractChangelogSince($changelogs[$ownerRepo] ?? null, null);
 
 				if ($label === '')
 				{
@@ -226,6 +228,8 @@ class RepoHelper
 					$item->state = 'installed';
 				}
 			}
+
+			$item->changelog_preview = self::extractChangelogSince($changelogs[$ownerRepo] ?? null, $item->installed_version);
 
 			$catalog[] = $item;
 		}
@@ -415,36 +419,105 @@ class RepoHelper
 	}
 
 	/**
-	 * Extracts just the latest dated entry from a "Keep a Changelog"-style
-	 * CHANGELOG.md (his own established convention: an H1 title, then each
-	 * release as its own "## " heading) - the first "## " section found,
-	 * stopping right before the next one. Capped at a sane display length.
+	 * Extracts every changelog entry from the newest down to (but not
+	 * including) the one matching $sinceVersion - "everything that changed
+	 * since what you have installed" instead of just the latest entry, so a
+	 * check after a while away shows the full picture, not just the most
+	 * recent line. Falls back to just the single latest entry when
+	 * $sinceVersion is null (not installed) or isn't found in the changelog
+	 * at all (e.g. a very old version, or the changelog was reset) - can't
+	 * reliably bound a range without it. Returns null when already on the
+	 * newest version (nothing to show).
+	 *
+	 * Known limitation: a repo whose CHANGELOG.md interleaves two builds
+	 * with independent version numbers (e.g. plg_system_fgemailremover's
+	 * classic vs joomla4-6/ entries) could, in principle, match the wrong
+	 * build's entry if the two ever happen to share a version number - the
+	 * version is matched as a bare number, not tied to which build it
+	 * belongs to. Not an issue with any of his current version numbering
+	 * (verified against that exact repo), and this is a best-effort
+	 * preview, not authoritative, so left as-is rather than added
+	 * complexity for a case that doesn't currently occur.
 	 */
-	private static function extractLatestChangelogEntry(?string $markdown): ?string
+	private const CHANGELOG_PREVIEW_MAX_CHARS = 4000;
+
+	private static function extractChangelogSince(?string $markdown, ?string $sinceVersion): ?string
 	{
 		if ($markdown === null || trim($markdown) === '')
 		{
 			return null;
 		}
 
-		if (preg_match('/^##\s+.*?(?=\n##\s|\z)/ms', $markdown, $matches) !== 1)
+		if (preg_match_all('/^##[ \t]+([^\n]*)\n(.*?)(?=\n##[ \t]+|\z)/ms', $markdown, $matches, PREG_SET_ORDER) === false
+			|| empty($matches))
 		{
 			return null;
 		}
 
-		$entry = trim($matches[0]);
+		$sections = [];
 
-		if ($entry === '')
+		foreach ($matches as $match)
+		{
+			$heading = trim($match[1]);
+			$version = null;
+
+			if (preg_match('/(\d+\.\d+\.\d+)/', $heading, $versionMatch))
+			{
+				$version = $versionMatch[1];
+			}
+
+			$sections[] = ['heading' => $heading, 'body' => trim($match[2]), 'version' => $version];
+		}
+
+		if (empty($sections))
 		{
 			return null;
 		}
 
-		if (strlen($entry) > 2000)
+		$cutoffIndex = null;
+
+		if ($sinceVersion !== null)
 		{
-			$entry = rtrim(substr($entry, 0, 2000)) . ' …';
+			foreach ($sections as $index => $section)
+			{
+				if ($section['version'] !== null && $section['version'] === $sinceVersion)
+				{
+					$cutoffIndex = $index;
+					break;
+				}
+			}
 		}
 
-		return $entry;
+		// Already on the newest version - nothing changed since, nothing to show.
+		if ($cutoffIndex === 0)
+		{
+			return null;
+		}
+
+		// $sinceVersion not given, or not found in the changelog at all: fall
+		// back to just the single latest entry rather than guessing a range.
+		$included = $cutoffIndex !== null ? array_slice($sections, 0, $cutoffIndex) : [$sections[0]];
+
+		$parts = [];
+
+		foreach ($included as $section)
+		{
+			$parts[] = '## ' . $section['heading'] . "\n" . $section['body'];
+		}
+
+		$combined = trim(implode("\n\n", $parts));
+
+		if ($combined === '')
+		{
+			return null;
+		}
+
+		if (strlen($combined) > self::CHANGELOG_PREVIEW_MAX_CHARS)
+		{
+			$combined = rtrim(substr($combined, 0, self::CHANGELOG_PREVIEW_MAX_CHARS)) . ' …';
+		}
+
+		return $combined;
 	}
 
 	/**
