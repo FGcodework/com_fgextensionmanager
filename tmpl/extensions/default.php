@@ -356,6 +356,7 @@ usort($this->items, function ($a, $b) use ($order) {
 
 	<?php endif; ?>
 
+	<input type="hidden" name="task" id="fgem-task-field" value="">
 	<input type="hidden" name="option" value="com_fgextensionmanager">
 	<input type="hidden" name="view" value="extensions">
 	<?php echo HTMLHelper::_('form.token'); ?>
@@ -397,19 +398,24 @@ window.addEventListener('resize', fgemSyncDetailRowWidths);
 document.addEventListener('show.bs.collapse', fgemSyncDetailRowWidths);
 fgemSyncDetailRowWidths();
 
-// "Update All" (toolbar button, extensions.updateAll task) needs a confirm
-// dialog before submitting. <joomla-toolbar-button> is documented as a thin
-// wrapper around Joomla.submitbutton() specifically meant to be overridden
-// this way by extension developers. Capturing the ORIGINAL function first
-// and calling that (not Joomla.submitbutton() again) avoids the classic
-// "too much recursion" bug from calling the function through its own,
-// now-overridden name.
+// "Update All" and "Refresh" (toolbar buttons) need to set the task and
+// submit the form. Joomla's own Joomla.submitform() does this via
+// `form.task.value = task`, but our form ALSO has several per-row
+// <button name="task" value="..."> elements (Install/Update/Uninstall,
+// intentionally - each contributes its own value only when directly
+// clicked as the submit control). With multiple elements sharing the name
+// "task", `form.task` resolves to a RadioNodeList instead of a single
+// element, and RadioNodeList.value's setter is only meaningful for radio
+// inputs - setting it here is a silent no-op, so the hidden task field
+// never actually gets the task value. Bypassing that entirely: submit
+// directly via our hidden field's unique id instead of the ambiguous
+// form.task reference.
 (function () {
-	if (typeof Joomla === 'undefined' || typeof Joomla.submitbutton !== 'function') {
+	if (typeof Joomla === 'undefined') {
 		return;
 	}
 
-	var originalSubmitbutton = Joomla.submitbutton;
+	var originalSubmitbutton = typeof Joomla.submitbutton === 'function' ? Joomla.submitbutton : null;
 
 	Joomla.submitbutton = function (task) {
 		if (task === 'extensions.updateAll') {
@@ -420,7 +426,20 @@ fgemSyncDetailRowWidths();
 			}
 		}
 
-		originalSubmitbutton(task);
+		var form      = document.getElementById('adminForm');
+		var taskField = document.getElementById('fgem-task-field');
+
+		if (form && taskField) {
+			taskField.value = task;
+			form.submit();
+
+			return;
+		}
+
+		// Fallback, should never be needed given the field above always exists.
+		if (originalSubmitbutton) {
+			originalSubmitbutton(task);
+		}
 	};
 })();
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.20.3
+- Found the actual root cause of "Update All" doing nothing after confirming (1.20.1/1.20.2
+  weren't wrong about the mechanism, just missing a piece): the form never had a dedicated
+  hidden `task` field for `Joomla.submitform()` to write into. It also has several per-row
+  `<button name="task" value="...">` elements (Install/Update/Uninstall - intentional, each
+  contributes its own value only when directly clicked). With multiple elements sharing the
+  name "task", `form.task` doesn't reliably resolve to a single settable element - confirmed
+  empirically in a real DOM (jsdom): `form.task` came back `undefined`, and `form.elements.task`
+  came back an ambiguous `RadioNodeList`, whose `.value` setter is only meaningful for radio
+  inputs and is a silent no-op otherwise. That's exactly why confirming did nothing: the task
+  value never actually reached the hidden field before `form.submit()`.
+  Fixed by adding the missing hidden field with a unique `id` (`fgem-task-field`), and having
+  the toolbar's `Joomla.submitbutton` override write into it directly via `getElementById`
+  and call `form.submit()` itself, bypassing the ambiguous `form.task` reference entirely.
+  Verified the fix directly in a real DOM: the hidden field receives the task value and
+  `form.submit()` fires correctly.
+
 ## 1.20.2
 - TEMPORARY, for testing 1.20.1's fix: colors the Update All toolbar button coral, found by
   its icon (`icon-loop`) rather than guessing `<joomla-toolbar-button>`'s exact internals - a
