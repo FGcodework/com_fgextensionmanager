@@ -351,4 +351,25 @@ function fgemFilterRows(query) {
 		}
 	});
 }
+
+// The detail row's CSS width:100% doesn't reliably resolve against the
+// table's actual width in every browser once display is overridden to
+// block on a <tr>/<td> (percentage-width containing-block rules get
+// ambiguous there). Measuring the table's real rendered width in JS and
+// applying it as an explicit pixel value sidesteps that entirely.
+function fgemSyncDetailRowWidths() {
+	var table = document.getElementById('fgem-table');
+	if (!table) {
+		return;
+	}
+	var width = table.offsetWidth + 'px';
+	document.querySelectorAll('#fgem-table .fgem-detail-row > td').forEach(function (td) {
+		td.style.width = width;
+	});
+}
+
+window.addEventListener('load', fgemSyncDetailRowWidths);
+window.addEventListener('resize', fgemSyncDetailRowWidths);
+document.addEventListener('show.bs.collapse', fgemSyncDetailRowWidths);
+fgemSyncDetailRowWidths();
 </script>

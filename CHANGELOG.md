@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.18.3
+- Got the actual rendered HTML from his site this time, which showed the real issue: even with
+  `display: block` (1.18.2), a `<tr>`/`<td>` overridden that way still doesn't reliably resolve
+  `width: 100%` against the table's real width in every browser - percentage-width containing-
+  block rules get ambiguous once an element that's normally table-row/table-cell has its
+  display overridden, especially still carrying a `colspan` attribute from its original markup.
+  Replaced the CSS-only approach with a small JS function that measures the table's actual
+  rendered pixel width (`table.offsetWidth`) and applies it directly as an explicit pixel width
+  to each detail row's cell - sidesteps the whole percentage-width ambiguity by using a hard
+  measured value instead. Runs on page load, on window resize, and right before any collapse
+  opens (in case a scrollbar appearing/disappearing changed the table's width). The self-card's
+  own changelog is unaffected either way - it was never inside the table, just a plain `<div>`
+  in a card, already full width by default.
+
 ## 1.18.2
 - 1.18.1's fix (explicit `width: 100%` on the colspanned cell) still wasn't reliably reaching
   full width in practice. Took a more decisive approach: the changelog detail row's `<tr>` and
