@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.20.2
+- TEMPORARY, for testing 1.20.1's fix: colors the Update All toolbar button coral, found by
+  its icon (`icon-loop`) rather than guessing `<joomla-toolbar-button>`'s exact internals - a
+  quick way to visually confirm this version is actually the one running, no functional change.
+  Safe to strip out again once 1.20.1's actual fix is confirmed working.
+
 ## 1.20.1
 - Fixed "Update All" not working after 1.19.1's move to the native toolbar - the
   `appendButton('Confirm', ...)` mechanism (copied from documentation about
