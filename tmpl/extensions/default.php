@@ -27,17 +27,27 @@ $stateMeta = [
 	'error'             => ['badge' => 'bg-danger', 'label' => 'COM_FGEXTENSIONMANAGER_STATE_ERROR'],
 ];
 
+$selfItem = null;
+
+foreach ($this->items as $key => $item)
+{
+	if ($item->is_self)
+	{
+		$selfItem = $item;
+		unset($this->items[$key]);
+		break;
+	}
+}
+
+$this->items = array_values($this->items);
+
 $order = ['update_available', 'installed', 'not_installed', 'incompatible', 'error'];
 usort($this->items, function ($a, $b) use ($order) {
-	if ($a->is_self !== $b->is_self)
-	{
-		return $b->is_self <=> $a->is_self;
-	}
-
 	return array_search($a->state, $order) <=> array_search($b->state, $order);
 });
 
-$updateAvailableCount = count(array_filter($this->items, static fn ($item) => $item->state === 'update_available'));
+$updateAvailableCount = count(array_filter($this->items, static fn ($item) => $item->state === 'update_available'))
+	+ ($selfItem !== null && $selfItem->state === 'update_available' ? 1 : 0);
 ?>
 <form action="<?php echo Route::_('index.php?option=com_fgextensionmanager&view=extensions'); ?>" method="post" name="adminForm" id="adminForm">
 
@@ -76,6 +86,86 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 			<?php endif; ?>
 		</div>
 	</div>
+
+	<?php if ($selfItem !== null) : ?>
+		<div class="card mb-4" style="border-left: 4px solid #FF6B4A;">
+			<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+				<div>
+					<strong class="text-primary"><?php echo htmlspecialchars($selfItem->name ?? $selfItem->label, ENT_QUOTES, 'UTF-8'); ?></strong>
+					<span class="badge bg-secondary"><?php echo Text::_('COM_FGEXTENSIONMANAGER_THIS_EXTENSION'); ?></span>
+					<?php if (!empty($selfItem->technical_id)) : ?>
+						<div class="small"><code><?php echo htmlspecialchars($selfItem->technical_id, ENT_QUOTES, 'UTF-8'); ?></code></div>
+					<?php endif; ?>
+					<div class="small text-muted mt-1">
+						<?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'); ?>:
+						<strong><?php echo $selfItem->installed_version ? htmlspecialchars($selfItem->installed_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></strong>
+						<?php if ($selfItem->state === 'update_available') : ?>
+							&rarr; <strong class="text-warning-emphasis"><?php echo htmlspecialchars($selfItem->available_version, ENT_QUOTES, 'UTF-8'); ?></strong>
+						<?php endif; ?>
+					</div>
+				</div>
+				<div class="d-flex align-items-center gap-2">
+					<?php $selfMeta = $stateMeta[$selfItem->state] ?? $stateMeta['error']; ?>
+					<span class="badge <?php echo $selfMeta['badge']; ?>"><?php echo Text::_($selfMeta['label']); ?></span>
+
+					<?php if (!in_array($selfItem->state, ['installed', 'update_available'], true)) : ?>
+						<span class="text-muted">&#8212;</span>
+					<?php elseif ($selfItem->protected) : ?>
+						<span class="badge bg-secondary" title="<?php echo Text::_('COM_FGEXTENSIONMANAGER_PROTECTED_HINT'); ?>">
+							<span class="icon-lock" aria-hidden="true"></span>
+							<?php echo Text::_($selfItem->enabled ? 'COM_FGEXTENSIONMANAGER_STATE_ENABLED' : 'COM_FGEXTENSIONMANAGER_STATE_DISABLED'); ?>
+						</span>
+					<?php elseif ($canManage) : ?>
+						<button
+							type="submit"
+							name="task"
+							value="extensions.toggle"
+							formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.toggle&key=' . urlencode($selfItem->key)); ?>"
+							class="btn btn-sm <?php echo $selfItem->enabled ? 'btn-success' : 'btn-danger'; ?>"
+							title="<?php echo Text::_($selfItem->enabled ? 'COM_FGEXTENSIONMANAGER_ENABLED' : 'COM_FGEXTENSIONMANAGER_DISABLED'); ?>"
+						>
+							<?php echo Text::_($selfItem->enabled ? 'COM_FGEXTENSIONMANAGER_STATE_ENABLED' : 'COM_FGEXTENSIONMANAGER_STATE_DISABLED'); ?>
+						</button>
+					<?php endif; ?>
+
+					<?php if ($canManage && $selfItem->state === 'update_available') : ?>
+						<button type="submit" name="task" value="extensions.update" formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.update&key=' . urlencode($selfItem->key)); ?>" class="btn btn-warning btn-sm">
+							<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_UPDATE'); ?>
+						</button>
+					<?php endif; ?>
+
+					<?php if (!empty($selfItem->changelog_preview)) : ?>
+						<button
+							type="button"
+							class="btn btn-link btn-sm"
+							data-bs-toggle="collapse"
+							data-bs-target="#fgem-changelog-self"
+							aria-expanded="false"
+							aria-controls="fgem-changelog-self"
+						>
+							<?php echo Text::_('COM_FGEXTENSIONMANAGER_LINK_CHANGELOG'); ?>
+						</button>
+					<?php elseif (!empty($selfItem->changelog_url)) : ?>
+						<a href="<?php echo htmlspecialchars($selfItem->changelog_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-link btn-sm">
+							<?php echo Text::_('COM_FGEXTENSIONMANAGER_LINK_CHANGELOG'); ?>
+						</a>
+					<?php endif; ?>
+				</div>
+			</div>
+			<?php if (!empty($selfItem->changelog_preview)) : ?>
+				<div class="collapse" id="fgem-changelog-self">
+					<div class="card-body border-top small" style="white-space: pre-wrap;">
+						<?php echo htmlspecialchars($selfItem->changelog_preview, ENT_QUOTES, 'UTF-8'); ?>
+						<div class="mt-2">
+							<a href="<?php echo htmlspecialchars($selfItem->changelog_full_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+								<?php echo Text::_('COM_FGEXTENSIONMANAGER_LINK_FULL_CHANGELOG'); ?>
+							</a>
+						</div>
+					</div>
+				</div>
+			<?php endif; ?>
+		</div>
+	<?php endif; ?>
 
 	<?php if (empty($this->items)) : ?>
 		<div class="alert alert-info">

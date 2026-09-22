@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.16.0
+- Pulled the self row out of the main table entirely, per feedback that a special row within
+  the same table (border, then background tint) still felt like it was fighting the list
+  rather than being genuinely separate. Now rendered as its own compact card above the
+  topic-discovered extensions table, with the same Update/Enable-Disable/Settings/Changelog
+  controls (still no Uninstall) but nothing shared with the table's row markup, sorting, or
+  striping. The table below now only ever contains topic-discovered extensions.
+  "Update All"'s count still includes a pending self-update even though it's no longer in the
+  table (the server-side action already updated self regardless - this just makes the
+  displayed count match what actually happens).
+
 ## 1.15.1
 - Removed the border treatment on the self row (1.15.0) - replaced with just a subtle
   background tint (a light coral wash, matching the FG brand color, instead of Bootstrap's
