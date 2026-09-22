@@ -372,7 +372,11 @@ function fgemFilterRows(query) {
 
 		var next = row.nextElementSibling;
 		if (next && next.classList.contains('fgem-detail-row')) {
-			next.style.display = matches ? '' : 'none';
+			// The detail row always needs display:block specifically (not the
+			// <tr> default of table-row - that's exactly what 1.18.2/1.18.3
+			// worked around) - clearing to '' here would silently lose that
+			// override and let the old column-shift bug back in.
+			next.style.display = matches ? 'block' : 'none';
 		}
 	});
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.21.3
+- Fixed the filter (1.18.0) silently undoing the column-shift fix (1.18.2/1.18.3) after
+  filtering, even just typing then clearing the field: `fgemFilterRows()` reset a matched
+  changelog detail row's `display` to `''` (empty string) to "show" it again, which clears the
+  inline `display: block` entirely rather than restoring it - falling back to a `<tr>`'s CSS
+  default of `table-row`, exactly the layout that was escaped in the first place to keep
+  expanding a changelog from resizing the other columns. Verified directly in a real DOM: the
+  detail row's `display` came back empty (not `block`) after a hide/show cycle with the old
+  code. Fixed by using the explicit value `'block'` instead of `''` specifically for the detail
+  row (the main row is unaffected - it has no inline `display` of its own to lose, so `''`
+  correctly falls back to the table's normal row display there).
+
 ## 1.21.2
 - Fixed self-uninstall/self-disable being UI-only, not enforced server-side (medium severity):
   `uninstall()` and `toggle()` never checked `is_self` - the Uninstall button and Enable/Disable
