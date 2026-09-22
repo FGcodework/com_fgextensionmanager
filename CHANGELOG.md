@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.18.2
+- 1.18.1's fix (explicit `width: 100%` on the colspanned cell) still wasn't reliably reaching
+  full width in practice. Took a more decisive approach: the changelog detail row's `<tr>` and
+  `<td>` now use `display: block` instead of their default table-row/table-cell display,
+  removing them from the table's column-width layout algorithm entirely - the same technique
+  DataTables' own "responsive detail row" feature uses for exactly this case. It can no longer
+  be constrained by (or itself influence) any column width, colspan-sum calculation included.
+  Still could not verify visually in an actual browser from here - please check again after
+  upload.
+
 ## 1.18.1
 - Fixed the table columns shifting left when a changelog row expanded - added
   `table-layout: fixed` with explicit column width percentages on the `<th>` elements, so

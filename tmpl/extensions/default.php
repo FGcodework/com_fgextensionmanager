@@ -312,10 +312,10 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 				</td>
 			</tr>
 			<?php if (!empty($item->changelog_preview)) : ?>
-				<tr class="fgem-detail-row">
-					<td colspan="7" class="p-0 border-0" style="width: 100%;">
-						<div class="collapse" id="fgem-changelog-<?php echo (int) $i; ?>" style="width: 100%;">
-							<div class="p-3 bg-light" style="width: 100%; box-sizing: border-box;">
+				<tr class="fgem-detail-row" style="display: block; width: 100%;">
+					<td colspan="7" class="p-0 border-0" style="display: block; width: 100%; box-sizing: border-box;">
+						<div class="collapse" id="fgem-changelog-<?php echo (int) $i; ?>">
+							<div class="p-3 bg-light">
 								<div class="small" style="white-space: pre-wrap; overflow-wrap: break-word;"><?php echo htmlspecialchars($item->changelog_preview, ENT_QUOTES, 'UTF-8'); ?></div>
 								<a href="<?php echo htmlspecialchars($item->changelog_full_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="small">
 									<?php echo Text::_('COM_FGEXTENSIONMANAGER_LINK_FULL_CHANGELOG'); ?>

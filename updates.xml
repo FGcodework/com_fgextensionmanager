@@ -5,11 +5,11 @@
 		<description>Discovers, installs, updates and uninstalls the FG series of GitHub extensions automatically via GitHub topic discovery - no manual "Install from URL" per extension.</description>
 		<element>com_fgextensionmanager</element>
 		<type>component</type>
-		<version>1.18.1</version>
+		<version>1.18.2</version>
 		<php_minimum>8.0.0</php_minimum>
 		<targetplatform name="joomla" version="[56]\.[0-9]+\.[0-9]+" />
 		<downloads>
-			<downloadurl type="full" format="zip">https://github.com/FGcodework/com_fgextensionmanager/releases/download/v1.18.1/com_fgextensionmanager_v1.18.1.zip</downloadurl>
+			<downloadurl type="full" format="zip">https://github.com/FGcodework/com_fgextensionmanager/releases/download/v1.18.2/com_fgextensionmanager_v1.18.2.zip</downloadurl>
 		</downloads>
 	</update>
 </updates>
