@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.15.0
+- FG Extension Manager now tracks itself, always - `buildRepoRows()` injects its own repo
+  (`FGcodework/com_fgextensionmanager`) into the tracked list unconditionally, so it shows up
+  whether or not it's been tagged with the discovery topic on GitHub (if it IS tagged,
+  discovery's own entry wins, since it can supply a more accurate `default_branch`).
+  Pinned to the top of the list regardless of its state, with a distinct visual treatment
+  (tinted background, coral-blue left border, thicker bottom border for separation, a "This
+  extension" badge) instead of blending into the normal alternating rows.
+  Uninstall is never shown for this row - self-uninstall is a real footgun (removing your own
+  files/DB row while actively executing) that self-update doesn't share, so Update/Settings
+  stay available but Uninstall doesn't. Verified the self-pinning sort logic directly: sorts
+  first regardless of its actual state (not_installed/installed/update_available/etc.), ahead
+  of the normal state-based grouping.
+
 ## 1.14.0
 - Added a "Settings" button, inspired by KREM, shown for installed rows where Joomla has one
   well-defined target: a plugin (links directly to its `com_plugins` edit screen, keyed by

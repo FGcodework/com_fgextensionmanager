@@ -29,6 +29,11 @@ $stateMeta = [
 
 $order = ['update_available', 'installed', 'not_installed', 'incompatible', 'error'];
 usort($this->items, function ($a, $b) use ($order) {
+	if ($a->is_self !== $b->is_self)
+	{
+		return $b->is_self <=> $a->is_self;
+	}
+
 	return array_search($a->state, $order) <=> array_search($b->state, $order);
 });
 
@@ -95,9 +100,12 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 		<?php foreach ($this->items as $i => $item) :
 			$meta = $stateMeta[$item->state] ?? $stateMeta['error'];
 		?>
-			<tr class="<?php echo $i % 2 === 1 ? 'table-light' : ''; ?>">
+			<tr class="<?php echo $item->is_self ? 'border-start border-4 border-primary border-bottom border-2 bg-primary bg-opacity-10' : ($i % 2 === 1 ? 'table-light' : ''); ?>">
 				<td>
 					<strong class="text-primary"><?php echo htmlspecialchars($item->name ?? $item->label, ENT_QUOTES, 'UTF-8'); ?></strong>
+					<?php if ($item->is_self) : ?>
+						<span class="badge bg-primary"><?php echo Text::_('COM_FGEXTENSIONMANAGER_THIS_EXTENSION'); ?></span>
+					<?php endif; ?>
 					<?php if (!empty($item->technical_id)) : ?>
 						<div class="small"><code><?php echo htmlspecialchars($item->technical_id, ENT_QUOTES, 'UTF-8'); ?></code></div>
 					<?php endif; ?>
@@ -176,7 +184,7 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 							</a>
 						<?php endif; ?>
 
-						<?php if ($canDelete && in_array($item->state, ['installed', 'update_available'], true)) : ?>
+						<?php if ($canDelete && !$item->is_self && in_array($item->state, ['installed', 'update_available'], true)) : ?>
 							<button
 								type="submit"
 								name="task"

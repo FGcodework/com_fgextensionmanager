@@ -78,6 +78,7 @@ class RepoHelper
 				'label'               => $label !== '' ? $label : $ownerRepo,
 				'source_url'          => $url,
 				'repo_url'            => 'https://github.com/' . $ownerRepo,
+				'is_self'             => strcasecmp($ownerRepo, self::SELF_OWNER_REPO) === 0,
 				'name'                => null,
 				'description'         => null,
 				'type'                => null,
@@ -700,8 +701,18 @@ class RepoHelper
 	}
 
 	/**
+	 * The component's own repo - always tracked (see getCatalog()'s special
+	 * handling of this row: pinned to the top, no Uninstall shown), so it
+	 * shows up whether or not it's been tagged with the discovery topic on
+	 * GitHub.
+	 */
+	private const SELF_OWNER_REPO = 'FGcodework/com_fgextensionmanager';
+
+	/**
 	 * Finds every repo tagged with the configured GitHub topic and normalizes
-	 * it into a map keyed by "owner/repo".
+	 * it into a map keyed by "owner/repo". Always includes the component's
+	 * own repo too (added last, so discovery's own entry - e.g. with a
+	 * correctly-detected default_branch - wins if it's already tagged).
 	 *
 	 * @return  array<string, object>  owner/repo => {branch, path, label}
 	 */
@@ -726,6 +737,15 @@ class RepoHelper
 
 			$rows[$ownerRepo] = (object) [
 				'branch' => trim((string) ($repo->default_branch ?? '')) ?: 'master',
+				'path'   => 'updates.xml',
+				'label'  => '',
+			];
+		}
+
+		if (!isset($rows[self::SELF_OWNER_REPO]))
+		{
+			$rows[self::SELF_OWNER_REPO] = (object) [
+				'branch' => 'master',
 				'path'   => 'updates.xml',
 				'label'  => '',
 			];

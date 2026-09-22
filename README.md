@@ -1,16 +1,13 @@
 <p align="center">
-  <img src="assets/logo.png" alt="FG Extension manager logo" width="128" height="128">
+  <img src="assets/logo.png" width="120" alt="FG Extension Manager logo">
 </p>
 
-<h1 align="center">FG Extension Manager</h1>
+# FG Extension Manager
 
-<p align="center">
-  <img src="https://img.shields.io/github/v/release/FGcodework/com_fgextensionmanager?color=FF6B4A&label=release" alt="Latest release">
-  <img src="https://img.shields.io/badge/Joomla-5.x%20%7C%206.x-blue.svg?logo=joomla&logoColor=white" alt="Joomla">
-  <img src="https://img.shields.io/badge/PHP-8.0%2B-purple.svg?logo=php&logoColor=white" alt="PHP">
-  <img src="https://img.shields.io/badge/license-GPL--2.0+-green.svg" alt="License">
-  <img src="https://img.shields.io/github/downloads/FGcodework/com_fgextensionmanager/total?cacheSeconds=3600" alt="Downloads">
-</p>
+![Version](https://img.shields.io/badge/version-1.14.0-blue)
+![Joomla](https://img.shields.io/badge/Joomla-5.x%20%7C%206.x-1a6877)
+![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
+![License](https://img.shields.io/badge/license-GPL--2.0--or--later-orange)
 
 A native Joomla admin component that discovers, installs, updates and uninstalls the **FG
 series** of GitHub extensions - no manual "Install from URL" per extension, no separate
