@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="plg_system_fgemailremover logo" width="128" height="128">
+  <img src="assets/logo.png" alt="FG Extension manager logo" width="128" height="128">
 </p>
 
 <h1 align="center">FG Extension Manager</h1>
