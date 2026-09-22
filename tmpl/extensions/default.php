@@ -60,33 +60,6 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 		</div>
 	<?php endif; ?>
 
-	<div class="d-flex justify-content-between align-items-center mb-3">
-		<p class="mb-0 text-muted">
-			<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_EXTENSIONS_COUNT', count($this->items)); ?>
-		</p>
-		<div>
-			<?php if ($canManage && $updateAvailableCount > 0) : ?>
-			<button
-				type="submit"
-				name="task"
-				value="extensions.updateAll"
-				formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.updateAll'); ?>"
-				class="btn btn-warning btn-sm"
-				onclick="return confirm(<?php echo htmlspecialchars(json_encode(Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $updateAvailableCount)), ENT_QUOTES, 'UTF-8'); ?>);"
-			>
-				<span class="icon-loop" aria-hidden="true"></span>
-				<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_BUTTON_UPDATE_ALL', $updateAvailableCount); ?>
-			</button>
-			<?php endif; ?>
-			<?php if ($canManage) : ?>
-			<button type="submit" name="task" value="extensions.refresh" class="btn btn-secondary btn-sm">
-				<span class="icon-refresh" aria-hidden="true"></span>
-				<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_REFRESH'); ?>
-			</button>
-			<?php endif; ?>
-		</div>
-	</div>
-
 	<?php if ($selfItem !== null) : ?>
 		<div class="card mb-4" style="border-left: 4px solid #FF6B4A;">
 			<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -146,6 +119,33 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 			<?php endif; ?>
 		</div>
 	<?php endif; ?>
+
+	<div class="d-flex justify-content-between align-items-center mb-3">
+		<p class="mb-0 text-muted">
+			<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_EXTENSIONS_COUNT', count($this->items)); ?>
+		</p>
+		<div>
+			<?php if ($canManage && $updateAvailableCount > 0) : ?>
+			<button
+				type="submit"
+				name="task"
+				value="extensions.updateAll"
+				formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.updateAll'); ?>"
+				class="btn btn-warning btn-sm"
+				onclick="return confirm(<?php echo htmlspecialchars(json_encode(Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $updateAvailableCount)), ENT_QUOTES, 'UTF-8'); ?>);"
+			>
+				<span class="icon-loop" aria-hidden="true"></span>
+				<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_BUTTON_UPDATE_ALL', $updateAvailableCount); ?>
+			</button>
+			<?php endif; ?>
+			<?php if ($canManage) : ?>
+			<button type="submit" name="task" value="extensions.refresh" class="btn btn-secondary btn-sm">
+				<span class="icon-refresh" aria-hidden="true"></span>
+				<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_REFRESH'); ?>
+			</button>
+			<?php endif; ?>
+		</div>
+	</div>
 
 	<?php if (empty($this->items)) : ?>
 		<div class="alert alert-info">

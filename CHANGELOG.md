@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.2
+- Moved the "N extension(s) tracked" count + Update All/Refresh toolbar below the self card
+  instead of above it - the count only ever refers to the topic-discovered table, so it reads
+  more sensibly sitting right above that table rather than above everything.
+
 ## 1.16.1
 - Removed the Enable/Disable toggle from the self card too - same reasoning as Uninstall
   already being hidden: disabling the extension that's actively managing this very screen is
