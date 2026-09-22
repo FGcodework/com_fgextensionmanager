@@ -142,12 +142,6 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 				<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_BUTTON_UPDATE_ALL', $updateAvailableCount); ?>
 			</button>
 			<?php endif; ?>
-			<?php if ($canManage) : ?>
-			<button type="submit" name="task" value="extensions.refresh" class="btn btn-secondary btn-sm">
-				<span class="icon-refresh" aria-hidden="true"></span>
-				<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_REFRESH'); ?>
-			</button>
-			<?php endif; ?>
 		</div>
 	</div>
 

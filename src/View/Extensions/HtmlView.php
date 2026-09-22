@@ -74,6 +74,11 @@ class HtmlView extends BaseHtmlView
 
 		ToolbarHelper::title(Text::_('COM_FGEXTENSIONMANAGER_TITLE_EXTENSIONS'), 'download');
 
+		if ($canDo->get('core.manage') || $canDo->get('core.admin'))
+		{
+			ToolbarHelper::custom('extensions.refresh', 'refresh', '', Text::_('COM_FGEXTENSIONMANAGER_BUTTON_REFRESH'), false);
+		}
+
 		if ($canDo->get('core.admin'))
 		{
 			ToolbarHelper::preferences('com_fgextensionmanager');

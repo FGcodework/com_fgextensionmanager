@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.19.0
+- Moved Refresh into the native Joomla toolbar (top, next to Options), in the same style and
+  via the same mechanism (`ToolbarHelper::custom()`) instead of a plain HTML button sitting
+  below the page title. Submits the same `adminForm` with `task=extensions.refresh`, so the
+  controller side is unchanged - verified the CSRF token and permission check
+  (`checkToken()`/`hasAccess()`) both still apply the same way through the standard Joomla
+  toolbar submit path. Removed the now-duplicate HTML button from the page body.
+
 ## 1.18.4
 - Rebalanced column widths using the real rendered HTML as a guide: Extension (28% -> 40%) was
   wrapping its description to two lines while Status/Enabled/Installed/Available - each just a
