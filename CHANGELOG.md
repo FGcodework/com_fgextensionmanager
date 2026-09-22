@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.22.1
+- Three precision fixes to `extractChangelogSince()` (1.11.0/1.17.0/1.21.1's accumulated
+  accuracy notes):
+  1. Headings with no parseable version (e.g. "Keep a Changelog"-style `## [Unreleased]`) are
+     now skipped entirely, so an up-to-date extension shows its actual latest release instead
+     of an unreleased section that isn't even shipped yet. Verified with a synthetic changelog
+     containing an Unreleased section above real releases.
+  2. Version matching now accepts two-segment versions ("1.21") as well as three ("1.21.0"),
+     and uses `version_compare()` instead of strict string equality, so a heading using a
+     shorter form than the installed version string still matches correctly. Verified directly.
+  3. **Fixed the actual 1.11.0 limitation for subfolder builds** (the one that specifically
+     affects `plg_content_fgautolightbox`, confirmed against the real repo): when a match comes
+     from a fallback path like `joomla6/updates.xml`, the changelog now comes from that same
+     subfolder's own `CHANGELOG.md` instead of always the root one - confirmed the two files
+     are genuinely different changelogs for different builds (root: classic build, 1.3.2;
+     `joomla6/`: native build, 2.3.9), and that the subfolder one now gets used correctly.
+     `fetchFallbackPaths()` now also returns which path matched; when the subfolder has no
+     `CHANGELOG.md` of its own, falls through to the root one rather than showing nothing.
+  Left as documented, not fixed: two builds in the SAME changelog file sharing a bare version
+  number (e.g. `plg_system_fgemailremover`'s classic vs joomla4-6 numbering) could still match
+  the wrong build's entry if their numbers ever coincide - doesn't currently occur, and fixing
+  it would need tracking which heading style belongs to which build, more complexity than this
+  best-effort preview warrants right now.
+
 ## 1.22.0
 - **Architecture change**: replaced the HTML `<table>` with a CSS Grid (`display: grid` +
   `display: contents` row wrappers), eliminating the root cause behind three separate releases

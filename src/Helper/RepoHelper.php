@@ -120,9 +120,40 @@ class RepoHelper
 			// the running Joomla version pay for extra, sequential
 			// fallback-path requests (e.g. joomla6/updates.xml) - rare
 			// enough that a second parallel batch isn't worth the complexity.
+			$matchedFallbackPath = null;
+
 			if (CompatibilityEvaluator::pickBest($entries) === null)
 			{
-				$entries = array_merge($entries, self::fetchFallbackPaths($ownerRepo, $branch, $timeout, $cacheMinutes, $refresh));
+				[$fallbackEntries, $matchedFallbackPath] = self::fetchFallbackPaths($ownerRepo, $branch, $timeout, $cacheMinutes, $refresh);
+				$entries = array_merge($entries, $fallbackEntries);
+			}
+
+			// The relevant build's own CHANGELOG.md, not always the root one:
+			// when the match came from a subfolder build (e.g.
+			// plg_content_fgautolightbox's joomla6/updates.xml), that
+			// subfolder normally has its own CHANGELOG.md too, covering
+			// that build specifically - the root file would otherwise show
+			// a different (frozen classic-build) changelog entirely.
+			if ($matchedFallbackPath !== null)
+			{
+				$changelogDir = dirname($matchedFallbackPath);
+
+				if ($changelogDir !== '.' && $changelogDir !== '')
+				{
+					$subfolderChangelogUrl = 'https://raw.githubusercontent.com/' . $ownerRepo . '/' . $branch . '/' . $changelogDir . '/CHANGELOG.md';
+					$subfolderError        = null;
+					$subfolderChangelog    = self::fetchRaw($subfolderChangelogUrl, $timeout, $cacheMinutes, $refresh, $subfolderError);
+
+					if ($subfolderChangelog !== null)
+					{
+						$changelogs[$ownerRepo]  = $subfolderChangelog;
+						$item->changelog_full_url = 'https://github.com/' . $ownerRepo . '/blob/' . $branch . '/' . $changelogDir . '/CHANGELOG.md';
+					}
+
+					// If the subfolder has no CHANGELOG.md of its own, fall
+					// through to whatever the root one already gave us -
+					// still better than nothing, even if it's the wrong build.
+				}
 			}
 
 			if (empty($entries))
@@ -457,6 +488,10 @@ class RepoHelper
 	 * (up to date), or isn't found in the changelog at all (e.g. a very old
 	 * version, or the changelog was reset) - always returns at least the
 	 * latest entry when the changelog has one at all, never nothing.
+	 * Headings with no parseable version (e.g. a "Keep a Changelog"-style
+	 * "## [Unreleased]" section) are skipped entirely, so an up-to-date
+	 * extension shows its actual latest release rather than an unreleased
+	 * section that isn't even shipped yet.
 	 *
 	 * Known limitation: a repo whose CHANGELOG.md interleaves two builds
 	 * with independent version numbers (e.g. plg_system_fgemailremover's
@@ -490,9 +525,18 @@ class RepoHelper
 			$heading = trim($match[1]);
 			$version = null;
 
-			if (preg_match('/(\d+\.\d+\.\d+)/', $heading, $versionMatch))
+			// Accepts a two-segment version ("1.21") as well as three
+			// ("1.21.0") - some of his headings only give the shorter form.
+			if (preg_match('/(\d+\.\d+(?:\.\d+)?)/', $heading, $versionMatch))
 			{
 				$version = $versionMatch[1];
+			}
+
+			// No parseable version at all - e.g. "[Unreleased]" - skip
+			// entirely rather than let it masquerade as "the latest entry".
+			if ($version === null)
+			{
+				continue;
 			}
 
 			$sections[] = ['heading' => $heading, 'body' => trim($match[2]), 'version' => $version];
@@ -509,7 +553,10 @@ class RepoHelper
 		{
 			foreach ($sections as $index => $section)
 			{
-				if ($section['version'] !== null && $section['version'] === $sinceVersion)
+				// version_compare (not ===) so "1.21" and "1.21.0" are
+				// recognised as the same version regardless of which
+				// segment count either side happens to use.
+				if (version_compare($section['version'], $sinceVersion, '=='))
 				{
 					$cutoffIndex = $index;
 					break;
@@ -671,11 +718,12 @@ class RepoHelper
 	 * second parallel batch isn't worth the complexity), stopping as soon as
 	 * a match for the running Joomla version is found.
 	 *
-	 * @return  object[]  Every <update> entry found across the fallback paths tried.
+	 * @return  array{0: object[], 1: string|null}  [every <update> entry found across the paths tried, the specific path that produced a match, if any]
 	 */
 	private static function fetchFallbackPaths(string $ownerRepo, string $branch, int $timeout, int $cacheMinutes, bool $refresh): array
 	{
-		$allEntries = [];
+		$allEntries  = [];
+		$matchedPath = null;
 
 		foreach (self::FALLBACK_PATHS as $path)
 		{
@@ -693,11 +741,12 @@ class RepoHelper
 
 			if (CompatibilityEvaluator::pickBest($allEntries) !== null)
 			{
+				$matchedPath = $path;
 				break;
 			}
 		}
 
-		return $allEntries;
+		return [$allEntries, $matchedPath];
 	}
 
 	/**
