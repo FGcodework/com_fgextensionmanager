@@ -124,6 +124,14 @@ class ExtensionsController extends BaseController
 			return;
 		}
 
+		if (!empty($item->is_self))
+		{
+			$this->app->enqueueMessage(Text::_('COM_FGEXTENSIONMANAGER_ERROR_SELF_ACTION'), 'error');
+			$this->setRedirect(Route::_(self::REDIRECT, false));
+
+			return;
+		}
+
 		[$success, $message] = InstallHelper::uninstallExtension($item->type, (int) $item->extension_id);
 
 		$this->app->enqueueMessage(
@@ -169,6 +177,14 @@ class ExtensionsController extends BaseController
 		if (!$item || empty($item->extension_id) || !in_array($item->state, ['installed', 'update_available'], true))
 		{
 			$this->app->enqueueMessage(Text::_('COM_FGEXTENSIONMANAGER_ERROR_NOT_FOUND'), 'error');
+			$this->setRedirect(Route::_(self::REDIRECT, false));
+
+			return;
+		}
+
+		if (!empty($item->is_self))
+		{
+			$this->app->enqueueMessage(Text::_('COM_FGEXTENSIONMANAGER_ERROR_SELF_ACTION'), 'error');
 			$this->setRedirect(Route::_(self::REDIRECT, false));
 
 			return;

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.21.2
+- Fixed self-uninstall/self-disable being UI-only, not enforced server-side (medium severity):
+  `uninstall()` and `toggle()` never checked `is_self` - the Uninstall button and Enable/Disable
+  toggle are hidden for FG Extension Manager's own row in the UI, but a direct POST with a
+  valid token and `key=FGcodework/com_fgextensionmanager` would have gone through anyway.
+  Added an explicit `is_self` refusal to both controller actions, matching the same
+  defense-in-depth principle already applied to `protected` extensions (never trust
+  client-side hiding alone for anything safety-relevant). `install()` doesn't need this - self
+  is always installed, that state is unreachable for it - and `update()` intentionally still
+  allows self-updating.
+
 ## 1.21.1
 - **Critical regression from 1.20.3**: the hidden `task` field added to fix "Update All" broke
   every per-row action button (Install/Update/Toggle/Uninstall) instead. Those buttons are
