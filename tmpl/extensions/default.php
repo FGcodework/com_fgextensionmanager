@@ -108,26 +108,6 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 					<?php $selfMeta = $stateMeta[$selfItem->state] ?? $stateMeta['error']; ?>
 					<span class="badge <?php echo $selfMeta['badge']; ?>"><?php echo Text::_($selfMeta['label']); ?></span>
 
-					<?php if (!in_array($selfItem->state, ['installed', 'update_available'], true)) : ?>
-						<span class="text-muted">&#8212;</span>
-					<?php elseif ($selfItem->protected) : ?>
-						<span class="badge bg-secondary" title="<?php echo Text::_('COM_FGEXTENSIONMANAGER_PROTECTED_HINT'); ?>">
-							<span class="icon-lock" aria-hidden="true"></span>
-							<?php echo Text::_($selfItem->enabled ? 'COM_FGEXTENSIONMANAGER_STATE_ENABLED' : 'COM_FGEXTENSIONMANAGER_STATE_DISABLED'); ?>
-						</span>
-					<?php elseif ($canManage) : ?>
-						<button
-							type="submit"
-							name="task"
-							value="extensions.toggle"
-							formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.toggle&key=' . urlencode($selfItem->key)); ?>"
-							class="btn btn-sm <?php echo $selfItem->enabled ? 'btn-success' : 'btn-danger'; ?>"
-							title="<?php echo Text::_($selfItem->enabled ? 'COM_FGEXTENSIONMANAGER_ENABLED' : 'COM_FGEXTENSIONMANAGER_DISABLED'); ?>"
-						>
-							<?php echo Text::_($selfItem->enabled ? 'COM_FGEXTENSIONMANAGER_STATE_ENABLED' : 'COM_FGEXTENSIONMANAGER_STATE_DISABLED'); ?>
-						</button>
-					<?php endif; ?>
-
 					<?php if ($canManage && $selfItem->state === 'update_available') : ?>
 						<button type="submit" name="task" value="extensions.update" formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.update&key=' . urlencode($selfItem->key)); ?>" class="btn btn-warning btn-sm">
 							<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_UPDATE'); ?>

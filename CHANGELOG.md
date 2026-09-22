@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.1
+- Removed the Enable/Disable toggle from the self card too - same reasoning as Uninstall
+  already being hidden: disabling the extension that's actively managing this very screen is
+  a footgun, not a normal action. Update and Settings/Changelog remain.
+
 ## 1.16.0
 - Pulled the self row out of the main table entirely, per feedback that a special row within
   the same table (border, then background tint) still felt like it was fighting the list
