@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.19.1
+- Moved "Update All" into the native Joomla toolbar too, next to Refresh - using the same
+  underlying mechanism `ToolbarHelper::deleteList()` uses for its own confirm dialog
+  (`Toolbar::appendButton('Confirm', ...)`, called directly with our own icon/message instead
+  of deleteList()'s hardcoded delete semantics), so the confirm-before-updating behaviour is
+  preserved. Only shown when there's actually something to update, same as before.
+  Combined the "N extension(s) tracked · last checked ..." line and the filter field onto one
+  row (filter left, text right) instead of two stacked rows.
+
 ## 1.19.0
 - Moved Refresh into the native Joomla toolbar (top, next to Options), in the same style and
   via the same mechanism (`ToolbarHelper::custom()`) instead of a plain HTML button sitting

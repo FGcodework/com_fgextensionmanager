@@ -12,6 +12,7 @@ namespace FG\Component\FgExtensionManager\Administrator\View\Extensions;
 use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Toolbar\Toolbar;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 defined('_JEXEC') or die;
@@ -63,12 +64,20 @@ class HtmlView extends BaseHtmlView
 		$this->lastChecked  = $result->last_checked;
 		$this->canDoActions = ContentHelper::getActions('com_fgextensionmanager');
 
-		$this->addToolbar();
+		// Includes a pending self-update too (self isn't pulled out of
+		// $this->items until the template renders it as its own card), so
+		// this count matches what extensions.updateAll() actually updates.
+		$updateAvailableCount = count(array_filter(
+			$this->items,
+			static fn ($item) => $item->state === 'update_available'
+		));
+
+		$this->addToolbar($updateAvailableCount);
 
 		parent::display($tpl);
 	}
 
-	protected function addToolbar(): void
+	protected function addToolbar(int $updateAvailableCount = 0): void
 	{
 		$canDo = ContentHelper::getActions('com_fgextensionmanager');
 
@@ -76,6 +85,22 @@ class HtmlView extends BaseHtmlView
 
 		if ($canDo->get('core.manage') || $canDo->get('core.admin'))
 		{
+			if ($updateAvailableCount > 0)
+			{
+				// Same underlying mechanism ToolbarHelper::deleteList() uses for its
+				// own confirm dialog (appendButton('Confirm', ...)), called directly
+				// so we can use our own icon/message instead of deleteList()'s
+				// hardcoded delete semantics.
+				Toolbar::getInstance('toolbar')->appendButton(
+					'Confirm',
+					Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $updateAvailableCount),
+					'loop',
+					Text::sprintf('COM_FGEXTENSIONMANAGER_BUTTON_UPDATE_ALL', $updateAvailableCount),
+					'extensions.updateAll',
+					false
+				);
+			}
+
 			ToolbarHelper::custom('extensions.refresh', 'refresh', '', Text::_('COM_FGEXTENSIONMANAGER_BUTTON_REFRESH'), false);
 		}
 

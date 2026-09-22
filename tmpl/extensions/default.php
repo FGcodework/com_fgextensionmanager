@@ -46,8 +46,6 @@ usort($this->items, function ($a, $b) use ($order) {
 	return array_search($a->state, $order) <=> array_search($b->state, $order);
 });
 
-$updateAvailableCount = count(array_filter($this->items, static fn ($item) => $item->state === 'update_available'))
-	+ ($selfItem !== null && $selfItem->state === 'update_available' ? 1 : 0);
 ?>
 <form action="<?php echo Route::_('index.php?option=com_fgextensionmanager&view=extensions'); ?>" method="post" name="adminForm" id="adminForm">
 
@@ -120,38 +118,8 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 		</div>
 	<?php endif; ?>
 
-	<div class="d-flex justify-content-between align-items-center mb-3">
-		<p class="mb-0 text-muted">
-			<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_EXTENSIONS_COUNT', count($this->items)); ?>
-			<?php if (!empty($this->lastChecked)) : ?>
-				&#183;
-				<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_LAST_CHECKED', Factory::getDate($this->lastChecked)->format('d.m.Y H:i')); ?>
-			<?php endif; ?>
-		</p>
-		<div>
-			<?php if ($canManage && $updateAvailableCount > 0) : ?>
-			<button
-				type="submit"
-				name="task"
-				value="extensions.updateAll"
-				formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.updateAll'); ?>"
-				class="btn btn-warning btn-sm"
-				onclick="return confirm(<?php echo htmlspecialchars(json_encode(Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $updateAvailableCount)), ENT_QUOTES, 'UTF-8'); ?>);"
-			>
-				<span class="icon-loop" aria-hidden="true"></span>
-				<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_BUTTON_UPDATE_ALL', $updateAvailableCount); ?>
-			</button>
-			<?php endif; ?>
-		</div>
-	</div>
-
-	<?php if (empty($this->items)) : ?>
-		<div class="alert alert-info">
-			<?php echo Text::_('COM_FGEXTENSIONMANAGER_NO_REPOS_CONFIGURED'); ?>
-		</div>
-	<?php else : ?>
-
-	<div class="mb-2">
+	<div class="d-flex align-items-center mb-3 flex-wrap gap-2">
+		<?php if (!empty($this->items)) : ?>
 		<input
 			type="search"
 			id="fgem-filter"
@@ -160,7 +128,21 @@ $updateAvailableCount = count(array_filter($this->items, static fn ($item) => $i
 			placeholder="<?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_PLACEHOLDER'); ?>"
 			oninput="fgemFilterRows(this.value)"
 		>
+		<?php endif; ?>
+		<p class="mb-0 text-muted ms-auto">
+			<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_EXTENSIONS_COUNT', count($this->items)); ?>
+			<?php if (!empty($this->lastChecked)) : ?>
+				&#183;
+				<?php echo Text::sprintf('COM_FGEXTENSIONMANAGER_LAST_CHECKED', Factory::getDate($this->lastChecked)->format('d.m.Y H:i')); ?>
+			<?php endif; ?>
+		</p>
 	</div>
+
+	<?php if (empty($this->items)) : ?>
+		<div class="alert alert-info">
+			<?php echo Text::_('COM_FGEXTENSIONMANAGER_NO_REPOS_CONFIGURED'); ?>
+		</div>
+	<?php else : ?>
 
 	<div class="table-responsive">
 	<table class="table" id="fgem-table" style="table-layout: fixed; width: 100%;">
