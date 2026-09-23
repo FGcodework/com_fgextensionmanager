@@ -5,7 +5,7 @@
 	<creationDate>2026-09-23</creationDate>
 	<copyright>Copyright (C) 2026 Fero. All rights reserved.</copyright>
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
-	<version>1.25.3</version>
+	<version>1.25.4</version>
 	<description>COM_FGEXTENSIONMANAGER_XML_DESCRIPTION</description>
 	<namespace path="src">FG\Component\FgExtensionManager</namespace>
 

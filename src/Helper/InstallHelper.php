@@ -15,7 +15,6 @@ use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Installer\InstallerHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\Database\DatabaseInterface;
 
 defined('_JEXEC') or die;
 
@@ -97,23 +96,27 @@ class InstallHelper
 		// get misread as coming from this install/update call.
 		$app->getMessageQueue(true);
 
-		// A fresh instance, not Installer::getInstance() - confirmed via
-		// Joomla's own issue tracker (joomla-cms#41087) that the singleton
-		// leaks state (manifestClass in particular) between extensions when
-		// looping updates/installs in the same request - exactly what
-		// extensions.updateAll() does. Core's own recommended fix is to stop
-		// using getInstance() and create a fresh one each time, "just like
-		// PackageAdapter does".
+		// Installer::getInstance() (the singleton), not a fresh instance.
 		//
-		// setDatabase() is required on Joomla 6+: a separate, confirmed core
-		// regression (joomla-cms#45653, fixed by #45670) - up through 5.3
-		// this happened automatically in the Adapter constructor, but that
-		// got lost when Installer's own constructor was rewritten for 6.0,
-		// so a manually-created instance now has to set it explicitly or
-		// every install/update call fails with "Database not set in
-		// Joomla\CMS\Installer\Installer".
-		$installer = new Installer();
-		$installer->setDatabase(Factory::getContainer()->get(DatabaseInterface::class));
+		// History: 1.23.0 switched to `new Installer()` based on
+		// joomla-cms#41087 (the singleton can leak manifestClass state
+		// between extensions when looping updates in the same request).
+		// 1.25.3 then added an explicit setDatabase() call after hitting a
+		// SEPARATE, confirmed Joomla 6.0 regression (joomla-cms#45653) where
+		// a freshly-constructed Installer has no database connection.
+		// Neither actually worked in practice: his own stack trace on
+		// Joomla 6 showed getDatabase() still failing deep inside
+		// getAdapter() even with setDatabase() called first - something
+		// about a manually-constructed instance still doesn't get properly
+		// wired up internally by the time it reaches that code path, and
+		// two attempts on his live site is enough guessing in this
+		// direction. getInstance() is the one actually confirmed reliable -
+		// this error never happened before 1.23.0 - so reliability wins
+		// over the narrower stale-state risk from #41087 (which only
+		// matters when updateAll() mixes a plugin and a package update in
+		// the same request - not impossible, but far less bad than
+		// installer actions being broken outright).
+		$installer = Installer::getInstance();
 		$success   = $isUpdate
 			? (bool) $installer->update($package['dir'])
 			: (bool) $installer->install($package['dir']);
@@ -165,10 +168,9 @@ class InstallHelper
 
 		$app->getMessageQueue(true);
 
-		// Same fresh-instance reasoning as installFromUrl() above, including
-		// the required setDatabase() call (joomla-cms#45653).
-		$installer = new Installer();
-		$installer->setDatabase(Factory::getContainer()->get(DatabaseInterface::class));
+		// Same reasoning and history as installFromUrl() above - reverted
+		// back to the proven-reliable getInstance().
+		$installer = Installer::getInstance();
 		$success   = (bool) $installer->uninstall($type, $extensionId);
 
 		$messages = [];

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.25.4
+- **Reverted 1.23.0's `new Installer()` change back to `Installer::getInstance()`.** 1.25.3's
+  `setDatabase()` fix didn't actually work in practice - his own stack trace on Joomla 6 showed
+  `getDatabase()` still failing, deep inside `getAdapter()` (called from `setupInstall()`,
+  called from `update()`), even with `setDatabase()` called right after construction. Something
+  about a manually-constructed `Installer` still isn't properly wired up internally by the time
+  execution reaches that code path, and two failed attempts on his live site is enough guessing
+  in this direction for now. `getInstance()` is the one actually confirmed reliable - this
+  error never happened before 1.23.0 in the first place - so reliability wins here over
+  `joomla-cms#41087`'s narrower stale-state risk (which only matters when `updateAll()` mixes a
+  plugin and a package update in the same request).
+
 ## 1.25.3
 - **Fixed "Database not set in Joomla\CMS\Installer\Installer" on Joomla 6** (broke Update
   All / Install / Uninstall entirely there since 1.23.0's `new Installer()` fix for the
