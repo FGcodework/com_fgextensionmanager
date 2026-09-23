@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.25.5
+- TEMPORARY DIAGNOSTIC BUILD, for tracking down "Database not set in Joomla\CMS\Installer\
+  Installer" on Joomla 6, which persisted through both 1.23.0's approach (`new Installer()`)
+  and 1.25.4's revert to `Installer::getInstance()`. Static review of his own uploaded
+  `Installer.php`/`DatabaseAwareTrait.php` couldn't explain the failure - `getInstance()`'s own
+  code calls `setDatabase()` immediately after construction, and the whole call chain
+  (`update()` -> `setupInstall()` -> `getAdapter()` -> `getDatabase()`) runs on that same
+  object with no re-instantiation visible in the stack trace he provided. Added: a reflection
+  check of the `databaseAwareTraitDatabase` property's actual value right before update()/
+  install() runs (both as an on-page warning and logged via `Log::add()`, since an uncaught
+  exception afterward might bypass normal message rendering), and a try/catch around update()/
+  install() itself to surface the exact exception class, message, file and line as a clean
+  error message plus a full stack trace in the log, instead of a raw fatal error page. No
+  functional change beyond this - purely to get a definitive answer instead of guessing again.
+
 ## 1.25.4
 - **Reverted 1.23.0's `new Installer()` change back to `Installer::getInstance()`.** 1.25.3's
   `setDatabase()` fix didn't actually work in practice - his own stack trace on Joomla 6 showed

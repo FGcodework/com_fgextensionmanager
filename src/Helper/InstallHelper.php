@@ -14,6 +14,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Installer\InstallerHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\PluginHelper;
 
 defined('_JEXEC') or die;
@@ -117,9 +118,50 @@ class InstallHelper
 		// the same request - not impossible, but far less bad than
 		// installer actions being broken outright).
 		$installer = Installer::getInstance();
-		$success   = $isUpdate
-			? (bool) $installer->update($package['dir'])
-			: (bool) $installer->install($package['dir']);
+
+		// TEMPORARY DIAGNOSTIC (1.25.5) - static review of his own
+		// Installer.php/DatabaseAwareTrait.php couldn't explain why
+		// getDatabase() fails deep inside getAdapter() when
+		// getInstance() itself calls setDatabase() right after
+		// construction. Checking directly, via reflection, whether that
+		// actually took effect on THIS instance before update()/install()
+		// runs - removed once this is understood.
+		try
+		{
+			$prop = new \ReflectionProperty($installer, 'databaseAwareTraitDatabase');
+			$prop->setAccessible(true);
+			$dbValue = $prop->getValue($installer);
+			$diagMsg = 'FGEM DIAGNOSTIC: Installer::getInstance() db property = '
+				. ($dbValue !== null ? get_class($dbValue) : 'NULL')
+				. ' | Factory::getContainer()->has(DatabaseInterface) = '
+				. (Factory::getContainer()->has(\Joomla\Database\DatabaseInterface::class) ? 'true' : 'false')
+				. ' | spl_object_id(installer) = ' . spl_object_id($installer);
+			$app->enqueueMessage($diagMsg, 'warning');
+			Log::add($diagMsg, Log::WARNING, 'fgextensionmanager');
+		}
+		catch (\Throwable $diagException)
+		{
+			$diagMsg = 'FGEM DIAGNOSTIC: reflection failed: ' . $diagException->getMessage();
+			$app->enqueueMessage($diagMsg, 'warning');
+			Log::add($diagMsg, Log::WARNING, 'fgextensionmanager');
+		}
+
+		try
+		{
+			$success = $isUpdate
+				? (bool) $installer->update($package['dir'])
+				: (bool) $installer->install($package['dir']);
+		}
+		catch (\Throwable $installException)
+		{
+			$diagMsg = 'FGEM DIAGNOSTIC: update()/install() threw: '
+				. get_class($installException) . ': ' . $installException->getMessage()
+				. ' at ' . $installException->getFile() . ':' . $installException->getLine();
+			Log::add($diagMsg, Log::ERROR, 'fgextensionmanager');
+			Log::add($installException->getTraceAsString(), Log::ERROR, 'fgextensionmanager');
+
+			return [false, $diagMsg];
+		}
 
 		$messages = [];
 
