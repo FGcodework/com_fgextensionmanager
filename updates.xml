@@ -11,6 +11,6 @@
 		<downloads>
 			<downloadurl type="full" format="zip">https://github.com/FGcodework/com_fgextensionmanager/releases/download/v1.25.7/com_fgextensionmanager_v1.25.7.zip</downloadurl>
 		</downloads>
-		<sha512>851d0df29988645d7de12ca0ea4169780137330943c8bb48b875f482e263b9da8f1bdd4c4e6542af7a9f28f9075dcc1dd02e3d7674ac9462e565367658ae6b6c</sha512>
+		<sha512>8288fae78e3b40370abb97317efc8a53f7b1dc1dd8ac00dc9589a544c77b016192c01da73f943b3a5ad8448dc24bcd959bdcc45417e0182713b99ee3d247dfe1</sha512>
 	</update>
 </updates>
