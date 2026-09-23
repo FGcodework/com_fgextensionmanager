@@ -10,127 +10,136 @@
  * 'unsafe-inline' blocks both inline <script> tags and inline event-handler
  * attributes (the oninput="..." this replaced), but not an externally
  * loaded, same-origin file like this one.
+ *
+ * Loaded as an ES module (see HtmlView::display()'s ['type' => 'module']) so
+ * this can import joomla.dialog - an ES module has its own scope already,
+ * so the IIFE wrapper an earlier, non-module version of this file used for
+ * that purpose isn't needed any more.
  */
-(function () {
-	'use strict';
+import JoomlaDialog from 'joomla.dialog';
 
-	var fgemActiveState = '';
+var fgemActiveState = '';
 
-	function fgemApplyFilters() {
-		var query = (document.getElementById('fgem-filter') || {}).value || '';
-		query = query.toLowerCase().trim();
+function fgemApplyFilters() {
+	var query = (document.getElementById('fgem-filter') || {}).value || '';
+	query = query.toLowerCase().trim();
 
-		var rows = document.querySelectorAll('#fgem-table [role="row"][data-fgem-search]');
-		rows.forEach(function (row) {
-			var textMatches  = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
-			var stateMatches = fgemActiveState === '' || row.getAttribute('data-fgem-state') === fgemActiveState;
-			var matches      = textMatches && stateMatches;
+	var rows = document.querySelectorAll('#fgem-table [role="row"][data-fgem-search]');
+	rows.forEach(function (row) {
+		var textMatches  = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
+		var stateMatches = fgemActiveState === '' || row.getAttribute('data-fgem-state') === fgemActiveState;
+		var matches      = textMatches && stateMatches;
 
-			// The row wrapper is display:contents by default (see the CSS) so its
-			// cells become direct grid items - clearing to '' here would fall
-			// back to the element's normal default (block), breaking the grid
-			// column alignment, so 'contents' has to be explicit (1.21.3's lesson,
-			// re-applied to the CSS Grid version of this row in 1.22.0).
-			row.style.display = matches ? 'contents' : 'none';
+		// The row wrapper is display:contents by default (see the CSS) so its
+		// cells become direct grid items - clearing to '' here would fall
+		// back to the element's normal default (block), breaking the grid
+		// column alignment, so 'contents' has to be explicit (1.21.3's lesson,
+		// re-applied to the CSS Grid version of this row in 1.22.0).
+		row.style.display = matches ? 'contents' : 'none';
 
-			var next = row.nextElementSibling;
-			if (next && next.classList.contains('fgem-detail-row')) {
-				next.style.display = matches ? 'contents' : 'none';
-			}
+		var next = row.nextElementSibling;
+		if (next && next.classList.contains('fgem-detail-row')) {
+			next.style.display = matches ? 'contents' : 'none';
+		}
+	});
+}
+
+// "Update All" and "Refresh" (toolbar buttons) need to set the task and
+// submit the form. Joomla's own Joomla.submitform() does this via
+// `form.task.value = task`, but our form ALSO has several per-row
+// <button name="task" value="..."> elements (Install/Update/Uninstall,
+// intentionally - each contributes its own value only when directly
+// clicked as the submit control). With multiple elements sharing the
+// name "task", `form.task` resolves to a RadioNodeList instead of a
+// single element, and RadioNodeList.value's setter is only meaningful
+// for radio inputs - setting it here is a silent no-op, so the hidden
+// task field never actually gets the task value. Bypassing that
+// entirely: submit directly via our hidden field's unique id instead of
+// the ambiguous form.task reference.
+function fgemSubmitTask(task) {
+	var form      = document.getElementById('adminForm');
+	var taskField = document.getElementById('fgem-task-field');
+
+	if (!form || !taskField) {
+		return;
+	}
+
+	// Disabled by default so it never collides with the per-row
+	// <button name="task" value="..."> elements (disabled form fields
+	// are excluded from submission entirely) - only enabled right here,
+	// for this one programmatic toolbar submit.
+	taskField.disabled = false;
+	taskField.value    = task;
+	form.submit();
+}
+
+// Deliberately NOT overriding the global Joomla.submitbutton (an
+// earlier version of this did): that function is shared by every
+// <joomla-toolbar-button> on the page, not scoped to this component, so
+// if anything else ever also overrides it, only one of the two
+// overrides survives - whichever assigns last. Attaching
+// capturing-phase click listeners directly to our own two buttons
+// instead intercepts the click before the component's own internal
+// handler runs, without touching anything global at all.
+function fgemInterceptToolbarButton(iconClass, onIntercepted) {
+	var icon = document.querySelector('#toolbar .' + iconClass);
+
+	if (!icon) {
+		return;
+	}
+
+	var button = icon.closest('a, button, joomla-toolbar-button');
+
+	if (!button) {
+		return;
+	}
+
+	button.addEventListener('click', function (event) {
+		event.preventDefault();
+		event.stopPropagation();
+		onIntercepted();
+	}, true); // capture phase - runs before the component's own handler
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+	var filterInput = document.getElementById('fgem-filter');
+
+	if (filterInput) {
+		filterInput.addEventListener('input', fgemApplyFilters);
+	}
+
+	var stateFilters = document.getElementById('fgem-state-filters');
+
+	if (stateFilters) {
+		stateFilters.querySelectorAll('[data-fgem-state-filter]').forEach(function (chip) {
+			chip.addEventListener('click', function () {
+				stateFilters.querySelectorAll('[data-fgem-state-filter]').forEach(function (other) {
+					other.classList.remove('active');
+				});
+				chip.classList.add('active');
+				fgemActiveState = chip.getAttribute('data-fgem-state-filter');
+				fgemApplyFilters();
+			});
 		});
 	}
 
-	// "Update All" and "Refresh" (toolbar buttons) need to set the task and
-	// submit the form. Joomla's own Joomla.submitform() does this via
-	// `form.task.value = task`, but our form ALSO has several per-row
-	// <button name="task" value="..."> elements (Install/Update/Uninstall,
-	// intentionally - each contributes its own value only when directly
-	// clicked as the submit control). With multiple elements sharing the
-	// name "task", `form.task` resolves to a RadioNodeList instead of a
-	// single element, and RadioNodeList.value's setter is only meaningful
-	// for radio inputs - setting it here is a silent no-op, so the hidden
-	// task field never actually gets the task value. Bypassing that
-	// entirely: submit directly via our hidden field's unique id instead of
-	// the ambiguous form.task reference.
-	function fgemSubmitTask(task) {
-		var form      = document.getElementById('adminForm');
-		var taskField = document.getElementById('fgem-task-field');
+	var options = window.Joomla && Joomla.getOptions ? Joomla.getOptions('com_fgextensionmanager.extensions', {}) : {};
 
-		if (!form || !taskField) {
-			return;
-		}
+	fgemInterceptToolbarButton('icon-loop', function () {
+		var msg = options.updateAllConfirm || '';
 
-		// Disabled by default so it never collides with the per-row
-		// <button name="task" value="..."> elements (disabled form fields
-		// are excluded from submission entirely) - only enabled right here,
-		// for this one programmatic toolbar submit.
-		taskField.disabled = false;
-		taskField.value    = task;
-		form.submit();
-	}
-
-	// Deliberately NOT overriding the global Joomla.submitbutton (an
-	// earlier version of this did): that function is shared by every
-	// <joomla-toolbar-button> on the page, not scoped to this component, so
-	// if anything else ever also overrides it, only one of the two
-	// overrides survives - whichever assigns last. Attaching
-	// capturing-phase click listeners directly to our own two buttons
-	// instead intercepts the click before the component's own internal
-	// handler runs, without touching anything global at all.
-	function fgemInterceptToolbarButton(iconClass, onIntercepted) {
-		var icon = document.querySelector('#toolbar .' + iconClass);
-
-		if (!icon) {
-			return;
-		}
-
-		var button = icon.closest('a, button, joomla-toolbar-button');
-
-		if (!button) {
-			return;
-		}
-
-		button.addEventListener('click', function (event) {
-			event.preventDefault();
-			event.stopPropagation();
-			onIntercepted();
-		}, true); // capture phase - runs before the component's own handler
-	}
-
-	document.addEventListener('DOMContentLoaded', function () {
-		var filterInput = document.getElementById('fgem-filter');
-
-		if (filterInput) {
-			filterInput.addEventListener('input', fgemApplyFilters);
-		}
-
-		var stateFilters = document.getElementById('fgem-state-filters');
-
-		if (stateFilters) {
-			stateFilters.querySelectorAll('[data-fgem-state-filter]').forEach(function (chip) {
-				chip.addEventListener('click', function () {
-					stateFilters.querySelectorAll('[data-fgem-state-filter]').forEach(function (other) {
-						other.classList.remove('active');
-					});
-					chip.classList.add('active');
-					fgemActiveState = chip.getAttribute('data-fgem-state-filter');
-					fgemApplyFilters();
-				});
-			});
-		}
-
-		var options = window.Joomla && Joomla.getOptions ? Joomla.getOptions('com_fgextensionmanager.extensions', {}) : {};
-
-		fgemInterceptToolbarButton('icon-loop', function () {
-			var msg = options.updateAllConfirm || '';
-
-			if (confirm(msg)) {
+		// JoomlaDialog.confirm() instead of the browser's native confirm() -
+		// styled consistently with the rest of the admin UI (a proper modal
+		// dialog, not a native OS dialog box docked at the top of the
+		// viewport). Returns a Promise instead of blocking synchronously.
+		JoomlaDialog.confirm(msg).then(function (result) {
+			if (result) {
 				fgemSubmitTask('extensions.updateAll');
 			}
 		});
-
-		fgemInterceptToolbarButton('icon-refresh', function () {
-			fgemSubmitTask('extensions.refresh');
-		});
 	});
-})();
+
+	fgemInterceptToolbarButton('icon-refresh', function () {
+		fgemSubmitTask('extensions.refresh');
+	});
+});

@@ -85,8 +85,12 @@ class HtmlView extends BaseHtmlView
 		// attributes), but not an externally loaded, same-origin file like
 		// this one. addScriptOptions() is the still-current (non-deprecated)
 		// way to pass PHP data down to it, read there via Joomla.getOptions().
+		// type=module + the joomla.dialog dependency: extensions.js uses
+		// `import JoomlaDialog from 'joomla.dialog'` for a properly styled,
+		// Joomla-native confirm dialog instead of the browser's own
+		// confirm() (which looked out of place at the top of the viewport).
 		$wa = $this->getDocument()->getWebAssetManager();
-		$wa->registerAndUseScript('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.js', [], ['defer' => true]);
+		$wa->registerAndUseScript('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.js', [], ['type' => 'module'], ['joomla.dialog']);
 		$wa->registerAndUseStyle('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.css');
 		$this->getDocument()->addScriptOptions('com_fgextensionmanager.extensions', [
 			'updateAllConfirm' => Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount),

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.25.2
+- Replaced the native browser `confirm()` for "Update All" with `JoomlaDialog.confirm()` -
+  Joomla's own dialog web component (confirmed in the official docs as a purpose-built
+  replacement for alert()/confirm()), styled consistently with the admin UI instead of a
+  native OS dialog box docked at the top of the viewport. `extensions.js` now loads as an ES
+  module (`type: 'module'`, with `joomla.dialog` declared as a dependency so Joomla loads that
+  asset first) to support `import JoomlaDialog from 'joomla.dialog'`. Verified the full
+  Promise-based flow in a real DOM: confirming submits the task correctly, matching the
+  previous synchronous confirm()'s behaviour.
+
 ## 1.25.1
 - Fixed the extensions list visually "sinking" into the page background since the CSS Grid
   rewrite (1.22.0). Root cause: a real `<table>` gets a background/border for free from base
