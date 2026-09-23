@@ -222,6 +222,16 @@ class ExtensionsController extends BaseController
 			return;
 		}
 
+		// Defensive: makes sure this run starts from a clean OPcache state
+		// too, not just the reset after each install/update in
+		// InstallHelper - in case OPcache was left stale by something
+		// before this request even started (a plain PHP function; nothing
+		// component-specific to import for it).
+		if (function_exists('opcache_reset'))
+		{
+			opcache_reset();
+		}
+
 		$catalog  = RepoHelper::getCatalog(false)->items;
 		$toUpdate = array_values(array_filter($catalog, static fn ($item) => $item->state === 'update_available'));
 

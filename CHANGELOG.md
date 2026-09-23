@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.25.7
+- **Found the actual root cause of "Database not set in Joomla\CMS\Installer\Installer"**:
+  PHP OPcache, not the Installer/database logic itself - which static review of his own
+  uploaded core files (`Installer.php`, `DatabaseAwareTrait.php`) never actually found a
+  problem with, despite three separate attempted fixes across 1.23.0-1.25.4. Self-updating
+  overwrites this component's own PHP files on disk, but OPcache doesn't necessarily notice
+  mid-request (or even on the next request, depending on `opcache.validate_timestamps`), so
+  the code that kept running was sometimes an OLD, stale compiled version - explaining every
+  confusing, seemingly-random symptom in this whole debugging thread: `new Installer()` still
+  apparently running after the source had already been reverted back to `getInstance()`,
+  1.25.5/1.25.6's diagnostic logging sometimes never appearing at all, and updates that
+  succeeded or failed with no apparent pattern.
+  Fixed by calling `opcache_reset()` right after every install/update/uninstall in
+  `InstallHelper.php` (guarded with `function_exists()`, since OPcache isn't guaranteed
+  everywhere), so the *next* request always sees accurate, freshly-compiled code - plus an
+  extra defensive reset at the start of `updateAll()` specifically, to give this one
+  transition update (from a build that didn't have the fix yet) the best chance of running
+  cleanly. Removed 1.25.5/1.25.6's temporary diagnostic code now that this is understood.
+  1.25.4's choice of `Installer::getInstance()` (over `new Installer()`) stands unchanged -
+  that part was correct all along and was never actually the problem.
+
 ## 1.25.6
 - Still the diagnostic build. Realized why the previous self-update test (downgrade to 1.25.0,
   then Update All) showed no diagnostic output at all: self-updating overwrites files on disk,

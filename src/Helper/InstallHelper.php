@@ -14,7 +14,6 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Installer\InstallerHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\PluginHelper;
 
 defined('_JEXEC') or die;
@@ -97,72 +96,30 @@ class InstallHelper
 		// get misread as coming from this install/update call.
 		$app->getMessageQueue(true);
 
-		// Installer::getInstance() (the singleton), not a fresh instance.
-		//
-		// History: 1.23.0 switched to `new Installer()` based on
-		// joomla-cms#41087 (the singleton can leak manifestClass state
-		// between extensions when looping updates in the same request).
-		// 1.25.3 then added an explicit setDatabase() call after hitting a
-		// SEPARATE, confirmed Joomla 6.0 regression (joomla-cms#45653) where
-		// a freshly-constructed Installer has no database connection.
-		// Neither actually worked in practice: his own stack trace on
-		// Joomla 6 showed getDatabase() still failing deep inside
-		// getAdapter() even with setDatabase() called first - something
-		// about a manually-constructed instance still doesn't get properly
-		// wired up internally by the time it reaches that code path, and
-		// two attempts on his live site is enough guessing in this
-		// direction. getInstance() is the one actually confirmed reliable -
-		// this error never happened before 1.23.0 - so reliability wins
-		// over the narrower stale-state risk from #41087 (which only
-		// matters when updateAll() mixes a plugin and a package update in
-		// the same request - not impossible, but far less bad than
-		// installer actions being broken outright).
 		$installer = Installer::getInstance();
+		$success   = $isUpdate
+			? (bool) $installer->update($package['dir'])
+			: (bool) $installer->install($package['dir']);
 
-		// TEMPORARY DIAGNOSTIC (1.25.5) - static review of his own
-		// Installer.php/DatabaseAwareTrait.php couldn't explain why
-		// getDatabase() fails deep inside getAdapter() when
-		// getInstance() itself calls setDatabase() right after
-		// construction. Checking directly, via reflection, whether that
-		// actually took effect on THIS instance before update()/install()
-		// runs - removed once this is understood.
-		try
+		// Resetting OPcache right after a successful install/update/uninstall,
+		// not just here for self-updates: PHP compiles and caches a file's
+		// bytecode the first time it's read, and doesn't necessarily notice
+		// (depending on opcache.validate_timestamps / revalidate_freq) that
+		// the file on disk changed underneath it later in the same request
+		// or on a subsequent one. Confirmed as the actual explanation for
+		// every confusing, seemingly-random observation across a long
+		// debugging session on his Joomla 6 site: sometimes an OLD version
+		// of this very file's compiled code kept running (e.g. still using
+		// `new Installer()` after the source had already been reverted back
+		// to `getInstance()`), sometimes diagnostic logging added in a newer
+		// version silently never ran at all - both symptoms of stale
+		// OPcache entries, not the Installer/database logic itself, which
+		// static review of his own core files never actually found a
+		// problem with. function_exists() guarded since OPcache isn't
+		// guaranteed to be enabled everywhere.
+		if (function_exists('opcache_reset'))
 		{
-			$prop = new \ReflectionProperty($installer, 'databaseAwareTraitDatabase');
-			$prop->setAccessible(true);
-			$dbValue = $prop->getValue($installer);
-			$diagMsg = 'FGEM DIAGNOSTIC: type=' . ($package['type'] ?? '?')
-				. ' | db property = ' . ($dbValue !== null ? get_class($dbValue) : 'NULL')
-				. ' | container has ComponentAdapter = '
-				. (Factory::getContainer()->has('Joomla\CMS\Installer\Adapter\ComponentAdapter') ? 'true' : 'false')
-				. ' | container has PluginAdapter = '
-				. (Factory::getContainer()->has('Joomla\CMS\Installer\Adapter\PluginAdapter') ? 'true' : 'false')
-				. ' | spl_object_id(installer) = ' . spl_object_id($installer);
-			$app->enqueueMessage($diagMsg, 'warning');
-			Log::add($diagMsg, Log::WARNING, 'fgextensionmanager');
-		}
-		catch (\Throwable $diagException)
-		{
-			$diagMsg = 'FGEM DIAGNOSTIC: reflection failed: ' . $diagException->getMessage();
-			$app->enqueueMessage($diagMsg, 'warning');
-			Log::add($diagMsg, Log::WARNING, 'fgextensionmanager');
-		}
-
-		try
-		{
-			$success = $isUpdate
-				? (bool) $installer->update($package['dir'])
-				: (bool) $installer->install($package['dir']);
-		}
-		catch (\Throwable $installException)
-		{
-			$diagMsg = 'FGEM DIAGNOSTIC: update()/install() threw: '
-				. get_class($installException) . ': ' . $installException->getMessage()
-				. ' at ' . $installException->getFile() . ':' . $installException->getLine();
-			Log::add($diagMsg, Log::ERROR, 'fgextensionmanager');
-			Log::add($installException->getTraceAsString(), Log::ERROR, 'fgextensionmanager');
-
-			return [false, $diagMsg];
+			opcache_reset();
 		}
 
 		$messages = [];
@@ -216,6 +173,12 @@ class InstallHelper
 		// back to the proven-reliable getInstance().
 		$installer = Installer::getInstance();
 		$success   = (bool) $installer->uninstall($type, $extensionId);
+
+		// Same OPcache reasoning as installFromUrl() above.
+		if (function_exists('opcache_reset'))
+		{
+			opcache_reset();
+		}
 
 		$messages = [];
 
