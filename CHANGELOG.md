@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.25.8
+- Clarified the GitHub Owner/Org and Topic field descriptions in Options: they're still
+  editable (this is the intended way to reuse this component for a different GitHub account's
+  extensions if you ever fork it), but now explicitly warn that changing them can make the
+  list come back empty - safe to try and revert, since self always shows regardless.
+
 ## 1.25.7
 - Fixed "Database not set in Joomla\CMS\Installer\Installer" on Joomla 6, which had persisted
   through several attempted fixes since 1.23.0 (a `new Installer()` change, then a
