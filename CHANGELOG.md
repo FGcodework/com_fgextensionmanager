@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.24.0
+- Four security-focused fixes from a short follow-up review:
+  1. **Moved all JS out of inline `<script>`/`oninput=` into an external file** (CSP-hostile
+     before - a Content-Security-Policy without 'unsafe-inline' blocks both). New
+     `media/js/extensions.js`, registered via `WebAssetManager::registerAndUseScript()` and fed
+     dynamic data via `Document::addScriptOptions()` (the current, non-deprecated way to pass
+     PHP data to JS) instead of inline PHP-to-JS interpolation - the documented Joomla 5/6 way.
+     Note while implementing: the official manual's own example URI
+     (`'com_example/myjs1.js'`) deliberately omits the `js/` subfolder segment even though the
+     file installs to `media/com_example/js/` - WebAssetManager looks there automatically for
+     script assets. Caught this by checking the docs before finalizing, having initially
+     "corrected" it to include `js/` based on our own `<files>` folder convention, which would
+     have been wrong here.
+  2. **Replaced the global `Joomla.submitbutton` override with scoped click listeners** on our
+     two specific toolbar buttons. The override itself was fine in isolation, but as a global,
+     shared function it's a last-write-wins hazard if any other script on the same page also
+     overrides it. Attaching capturing-phase click listeners directly to our own buttons
+     (found by icon class) intercepts the click before the component's own handler runs,
+     without touching anything global. Verified directly in a real DOM: the internal
+     (bubbling-phase) handler never fires, and both the confirmed and cancelled paths submit
+     the right task or nothing at all, respectively.
+  3. **Self-update ordering in `updateAll()`**: self-updating overwrites the very files the
+     current request is executing from. Sorted self to always run last in the batch, and now
+     stop the loop immediately after updating it rather than continuing - a small, deliberate
+     safety margin against exactly this kind of self-modifying-code risk, even beyond what the
+     ordering alone already guarantees.
+  4. Added an explicit comment on `SELF_OWNER_REPO` for anyone forking this component - left as
+     FGcodework/com_fgextensionmanager, a fork would keep tracking and self-updating from the
+     original upstream instead of itself.
+
 ## 1.23.0
 - Worked through a 12-point analysis (A-L), verifying each claim directly against the code or an
   authoritative source before fixing - two turned out to be independently confirmed via

@@ -79,6 +79,18 @@ class HtmlView extends BaseHtmlView
 			static fn ($item) => $item->state === 'update_available'
 		));
 
+		// External file + WebAssetManager instead of an inline <script>
+		// block in the template - a Content-Security-Policy without
+		// 'unsafe-inline' blocks inline scripts (and inline event-handler
+		// attributes), but not an externally loaded, same-origin file like
+		// this one. addScriptOptions() is the still-current (non-deprecated)
+		// way to pass PHP data down to it, read there via Joomla.getOptions().
+		$wa = $this->getDocument()->getWebAssetManager();
+		$wa->registerAndUseScript('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.js', [], ['defer' => true]);
+		$this->getDocument()->addScriptOptions('com_fgextensionmanager.extensions', [
+			'updateAllConfirm' => Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount),
+		]);
+
 		$this->addToolbar($this->updateAvailableCount);
 
 		parent::display($tpl);
@@ -97,7 +109,8 @@ class HtmlView extends BaseHtmlView
 				// Plain Standard button, same proven mechanism as Refresh below -
 				// the appendButton('Confirm', ...) variant tried first turned out
 				// not to work in practice. The confirm dialog is instead handled
-				// by a small JS wrapper in the template around Joomla.submitbutton().
+				// by a scoped click listener on this specific button (see
+				// media/js/extensions.js), not a global Joomla.submitbutton override.
 				ToolbarHelper::custom(
 					'extensions.updateAll',
 					'loop',

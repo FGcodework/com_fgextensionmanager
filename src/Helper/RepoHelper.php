@@ -885,6 +885,12 @@ class RepoHelper
 	 * handling of this row: pinned to the top, no Uninstall shown), so it
 	 * shows up whether or not it's been tagged with the discovery topic on
 	 * GitHub.
+	 *
+	 * If you fork this component: change this to your own fork's
+	 * "owner/repo". Left as FGcodework/com_fgextensionmanager, a fork will
+	 * happily keep tracking and self-updating from the ORIGINAL upstream
+	 * repo instead of itself - fine for the FG series itself (this constant
+	 * IS the upstream), not fine for anyone building on top of it.
 	 */
 	private const SELF_OWNER_REPO = 'FGcodework/com_fgextensionmanager';
 

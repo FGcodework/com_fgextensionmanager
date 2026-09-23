@@ -233,6 +233,18 @@ class ExtensionsController extends BaseController
 			return;
 		}
 
+		// Self LAST, always - self-updating overwrites the very files this
+		// request is currently executing. PHP keeps running classes it's
+		// already loaded from memory for the rest of this request either
+		// way, but anything not yet loaded (lazily-included files, a
+		// not-yet-touched class) would load the NEW version mid-request if
+		// self-update happened before the loop finished, mixing old and new
+		// code in the same request in a way that's hard to reason about.
+		// Sorting self last, then stopping immediately after it (below)
+		// rather than relying only on this ordering, keeps that window as
+		// small as possible.
+		usort($toUpdate, static fn ($a, $b) => (int) ($a->is_self ?? false) <=> (int) ($b->is_self ?? false));
+
 		$succeeded = [];
 		$failed    = [];
 
@@ -253,6 +265,15 @@ class ExtensionsController extends BaseController
 			else
 			{
 				$failed[] = $item->label . ' (' . $message . ')';
+			}
+
+			// Stop right here if that was self - own files are now
+			// overwritten, so nothing after this point should keep running
+			// in the same request, even if (due to some future change) self
+			// wasn't actually the last item in the list.
+			if (!empty($item->is_self))
+			{
+				break;
 			}
 		}
 

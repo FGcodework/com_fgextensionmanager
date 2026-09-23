@@ -132,7 +132,6 @@ usort($this->items, function ($a, $b) use ($order) {
 			class="form-control form-control-sm"
 			style="max-width: 320px;"
 			placeholder="<?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_PLACEHOLDER'); ?>"
-			oninput="fgemFilterRows(this.value)"
 		>
 		<?php endif; ?>
 		<p class="mb-0 text-muted ms-auto">
@@ -406,73 +405,3 @@ usort($this->items, function ($a, $b) use ($order) {
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
-<script>
-function fgemFilterRows(query) {
-	query = query.toLowerCase().trim();
-	var rows = document.querySelectorAll('#fgem-table [role="row"][data-fgem-search]');
-	rows.forEach(function (row) {
-		var matches = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
-		// The row wrapper is display:contents by default (see the CSS) so its
-		// cells become direct grid items - clearing to '' here would fall
-		// back to the element's normal default (block), breaking the grid
-		// column alignment, so 'contents' has to be explicit, the same
-		// lesson 1.21.3 already applied to the old <tr> version of this row.
-		row.style.display = matches ? 'contents' : 'none';
-
-		var next = row.nextElementSibling;
-		if (next && next.classList.contains('fgem-detail-row')) {
-			next.style.display = matches ? 'contents' : 'none';
-		}
-	});
-}
-
-// "Update All" and "Refresh" (toolbar buttons) need to set the task and
-// submit the form. Joomla's own Joomla.submitform() does this via
-// `form.task.value = task`, but our form ALSO has several per-row
-// <button name="task" value="..."> elements (Install/Update/Uninstall,
-// intentionally - each contributes its own value only when directly
-// clicked as the submit control). With multiple elements sharing the name
-// "task", `form.task` resolves to a RadioNodeList instead of a single
-// element, and RadioNodeList.value's setter is only meaningful for radio
-// inputs - setting it here is a silent no-op, so the hidden task field
-// never actually gets the task value. Bypassing that entirely: submit
-// directly via our hidden field's unique id instead of the ambiguous
-// form.task reference.
-(function () {
-	if (typeof Joomla === 'undefined') {
-		return;
-	}
-
-	var originalSubmitbutton = typeof Joomla.submitbutton === 'function' ? Joomla.submitbutton : null;
-
-	Joomla.submitbutton = function (task) {
-		if (task === 'extensions.updateAll') {
-			var msg = <?php echo json_encode(Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount)); ?>;
-
-			if (!confirm(msg)) {
-				return;
-			}
-		}
-
-		var form      = document.getElementById('adminForm');
-		var taskField = document.getElementById('fgem-task-field');
-
-		if (form && taskField) {
-			// Disabled by default so it never collides with the per-row
-			// <button name="task" value="..."> elements (disabled form
-			// fields are excluded from submission entirely) - only enabled
-			// right here, for this one programmatic toolbar submit.
-			taskField.disabled = false;
-			taskField.value    = task;
-			form.submit();
-
-			return;
-		}
-
-		// Fallback, should never be needed given the field above always exists.
-		if (originalSubmitbutton) {
-			originalSubmitbutton(task);
-		}
-	};
-})();
-</script>
