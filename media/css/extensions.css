@@ -19,7 +19,20 @@
  * become direct grid items of the single outer grid (needed for column
  * alignment across rows); the wrapper itself generates no box, so
  * striping/borders are applied per-cell in PHP rather than to the row.
+ *
+ * The whole list also needs its OWN card-style framing explicitly: a real
+ * <table> gets a background/border for free from base template CSS that
+ * targets the <table> tag itself, but our [role="table"] div isn't a real
+ * <table> element, so none of that applies automatically - without this,
+ * the list visually "sinks" into the page background instead of reading as
+ * its own distinct block.
  */
+#fgem-table-wrapper {
+	background-color: var(--bs-body-bg, #fff);
+	border: 1px solid var(--bs-border-color, #dee2e6);
+	border-radius: 6px;
+	padding: 0 12px;
+}
 #fgem-table {
 	display: grid;
 	grid-template-columns: 40% 9% 9% 7% 7% 16% 12%;

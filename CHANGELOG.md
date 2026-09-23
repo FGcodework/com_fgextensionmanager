@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.25.1
+- Fixed the extensions list visually "sinking" into the page background since the CSS Grid
+  rewrite (1.22.0). Root cause: a real `<table>` gets a background/border for free from base
+  template CSS that targets the `<table>` tag itself, but our `[role="table"]` div structure
+  isn't an actual `<table>` element, so none of that applied automatically. Added explicit
+  card-style framing (background, border, rounded corners) to `#fgem-table-wrapper`, matching
+  the self card's own `.card` styling above it.
+
 ## 1.25.0
 - Seven UX-detail fixes:
   1. Filter placeholder said "by name" but also matches technical id and repository - text
