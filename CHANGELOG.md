@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.25.6
+- Still the diagnostic build. Realized why the previous self-update test (downgrade to 1.25.0,
+  then Update All) showed no diagnostic output at all: self-updating overwrites files on disk,
+  but the request that TRIGGERS the update keeps running the code that was already loaded into
+  memory at the START of that request - the OLD 1.25.0 InstallHelper.php (without any
+  diagnostics), not the new one being installed. Two plugin-only updates DID show diagnostics
+  and succeeded, both times with the database correctly set - the failure has only ever
+  actually been observed updating com_fgextensionmanager itself (always type=component),
+  never a plugin. Testing this needs self to already be ON a diagnostic build (1.25.5+) so an
+  update FROM here (to this build) actually runs the new code during the update.
+  Added the specific check for this theory: whether `Factory::getContainer()->has(...)` differs
+  between `ComponentAdapter` and `PluginAdapter` - `getAdapter()`'s own code
+  (`Installer.php:2492`) skips `getDatabase()` entirely when the adapter class is found in the
+  container, and only reaches the failing `getDatabase()` call in the fallback path when it
+  isn't - if that differs by type, it would fully explain every observation so far.
+
 ## 1.25.5
 - TEMPORARY DIAGNOSTIC BUILD, for tracking down "Database not set in Joomla\CMS\Installer\
   Installer" on Joomla 6, which persisted through both 1.23.0's approach (`new Installer()`)

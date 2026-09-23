@@ -131,10 +131,12 @@ class InstallHelper
 			$prop = new \ReflectionProperty($installer, 'databaseAwareTraitDatabase');
 			$prop->setAccessible(true);
 			$dbValue = $prop->getValue($installer);
-			$diagMsg = 'FGEM DIAGNOSTIC: Installer::getInstance() db property = '
-				. ($dbValue !== null ? get_class($dbValue) : 'NULL')
-				. ' | Factory::getContainer()->has(DatabaseInterface) = '
-				. (Factory::getContainer()->has(\Joomla\Database\DatabaseInterface::class) ? 'true' : 'false')
+			$diagMsg = 'FGEM DIAGNOSTIC: type=' . ($package['type'] ?? '?')
+				. ' | db property = ' . ($dbValue !== null ? get_class($dbValue) : 'NULL')
+				. ' | container has ComponentAdapter = '
+				. (Factory::getContainer()->has('Joomla\CMS\Installer\Adapter\ComponentAdapter') ? 'true' : 'false')
+				. ' | container has PluginAdapter = '
+				. (Factory::getContainer()->has('Joomla\CMS\Installer\Adapter\PluginAdapter') ? 'true' : 'false')
 				. ' | spl_object_id(installer) = ' . spl_object_id($installer);
 			$app->enqueueMessage($diagMsg, 'warning');
 			Log::add($diagMsg, Log::WARNING, 'fgextensionmanager');
