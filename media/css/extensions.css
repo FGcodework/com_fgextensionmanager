@@ -1,0 +1,99 @@
+/**
+ * @package     FG.Administrator
+ * @subpackage  com_fgextensionmanager
+ *
+ * @copyright   Copyright (C) 2026 Fero. All rights reserved.
+ * @license     GNU General Public License version 2 or later
+ *
+ * Loaded via WebAssetManager (see HtmlView::display()) instead of an inline
+ * <style> block in the template - besides being CSP-friendlier, an inline
+ * block can't be overridden by a Joomla template override the way an
+ * external stylesheet can.
+ *
+ * CSS Grid instead of an HTML <table>: a spanning cell (the changelog
+ * detail row) uses grid-column: 1 / -1 natively, with zero risk of
+ * affecting other rows' column widths - the exact problem 1.18.1-1.18.3
+ * spent three releases fighting with table-layout:fixed, a display:block
+ * override on <tr>/<td>, and a JS width-measuring workaround, none of which
+ * are needed here. Each "row" is a display:contents wrapper so its cells
+ * become direct grid items of the single outer grid (needed for column
+ * alignment across rows); the wrapper itself generates no box, so
+ * striping/borders are applied per-cell in PHP rather than to the row.
+ */
+#fgem-table {
+	display: grid;
+	grid-template-columns: 40% 9% 9% 7% 7% 16% 12%;
+	width: 100%;
+}
+#fgem-table [role="row"] {
+	display: contents;
+}
+#fgem-table [role="columnheader"] {
+	font-weight: bold;
+	padding: 8px;
+	border-bottom: 2px solid var(--bs-border-color, #dee2e6);
+}
+#fgem-table [role="cell"] {
+	padding: 8px;
+	border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+@media (max-width: 767.98px) {
+	/*
+	 * Below the breakpoint, rows stack into cards (below) instead of
+	 * columns - nothing to scroll horizontally for anymore, so the
+	 * .table-responsive wrapper's overflow-x:auto (still useful above this
+	 * breakpoint, as a safety net for the percentage-column grid) is just
+	 * disabled here rather than fighting the card layout for no benefit.
+	 */
+	#fgem-table-wrapper {
+		overflow-x: visible;
+	}
+
+	#fgem-table {
+		grid-template-columns: 1fr;
+	}
+	#fgem-table [role="columnheader"] {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+	}
+	#fgem-table [role="cell"] {
+		padding: 4px 0 4px 42%;
+		position: relative;
+		text-align: left !important;
+		border-bottom: none;
+	}
+	#fgem-table [role="cell"][data-label]::before {
+		content: attr(data-label) ":";
+		position: absolute;
+		left: 0;
+		width: 38%;
+		font-weight: bold;
+		white-space: normal;
+	}
+	#fgem-table [role="cell"][data-row-start] {
+		padding-left: 0;
+		margin-top: 12px;
+		border-top: 1px solid var(--bs-border-color, #dee2e6);
+		padding-top: 10px;
+	}
+	#fgem-table [role="cell"][data-row-end] {
+		padding-bottom: 10px;
+	}
+}
+
+/*
+ * .bg-light is a Bootstrap utility that Bootstrap 5.3's own color-mode
+ * system (confirmed in use - Atum sets data-bs-theme on <html>) is
+ * supposed to remap automatically under dark mode, but that depends on
+ * Atum's own variable setup being complete - adding an explicit override
+ * here too rather than assuming, since this couldn't be verified live.
+ */
+[data-bs-theme="dark"] .fgem-changelog-body {
+	background-color: rgba(255, 255, 255, 0.06) !important;
+	color: inherit;
+}

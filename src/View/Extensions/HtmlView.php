@@ -87,6 +87,7 @@ class HtmlView extends BaseHtmlView
 		// way to pass PHP data down to it, read there via Joomla.getOptions().
 		$wa = $this->getDocument()->getWebAssetManager();
 		$wa->registerAndUseScript('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.js', [], ['defer' => true]);
+		$wa->registerAndUseStyle('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.css');
 		$this->getDocument()->addScriptOptions('com_fgextensionmanager.extensions', [
 			'updateAllConfirm' => Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount),
 		]);

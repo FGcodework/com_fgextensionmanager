@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.25.0
+- Seven UX-detail fixes:
+  1. Filter placeholder said "by name" but also matches technical id and repository - text
+     now says so.
+  2. Added state filter chips (All / Update available / Installed / Not installed /
+     Incompatible, each with a live count, zero-count states hidden) above the text filter -
+     combines with it (both apply together) rather than replacing it.
+  3. The self card never showed its own error/incompatible message, unlike the table - added,
+     matching the table's exact treatment (same colour logic, same condition).
+  4. Removed `COM_FGEXTENSIONMANAGER_UP_TO_DATE` - confirmed genuinely unused since 1.13.1
+     removed the "Up to date" text it was for (a *different* key,
+     `..._ERROR_ALREADY_UP_TO_DATE`, is still in real use).
+  5. `creationDate` was still 1.0.0's date after two dozen releases - updated.
+  6. Moved the inline `<style>` block to `media/css/extensions.css`, registered via
+     `WebAssetManager::registerAndUseStyle()` - same CSP reasoning as 1.24.0's JS move, plus an
+     inline block can't be touched by a Joomla template override the way an external stylesheet
+     can.
+  7. On mobile, `.table-responsive`'s `overflow-x: auto` was still active alongside the
+     card-stacking layout, even though stacked cards have nothing to scroll horizontally for -
+     disabled specifically below the card-stacking breakpoint, left alone above it where it's
+     still a reasonable safety net for the percentage-column grid.
+
 ## 1.24.0
 - Four security-focused fixes from a short follow-up review:
   1. **Moved all JS out of inline `<script>`/`oninput=` into an external file** (CSP-hostile

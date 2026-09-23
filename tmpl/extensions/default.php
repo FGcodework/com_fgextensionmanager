@@ -78,6 +78,9 @@ usort($this->items, function ($a, $b) use ($order) {
 				<div class="d-flex align-items-center gap-2">
 					<?php $selfMeta = $stateMeta[$selfItem->state] ?? $stateMeta['error']; ?>
 					<span class="badge <?php echo $selfMeta['badge']; ?>"><?php echo Text::_($selfMeta['label']); ?></span>
+					<?php if (in_array($selfItem->state, ['error', 'incompatible'], true) && !empty($selfItem->error)) : ?>
+						<div class="small mt-1 <?php echo $selfItem->state === 'error' ? 'text-danger' : 'text-muted'; ?>"><?php echo htmlspecialchars($selfItem->error, ENT_QUOTES, 'UTF-8'); ?></div>
+					<?php endif; ?>
 
 					<?php if ($canManage && $selfItem->state === 'update_available') : ?>
 						<button type="submit" name="task" value="extensions.update" formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.update&key=' . urlencode($selfItem->key)); ?>" class="btn btn-warning btn-sm">
@@ -124,6 +127,38 @@ usort($this->items, function ($a, $b) use ($order) {
 		</div>
 	<?php endif; ?>
 
+	<?php
+	$stateCounts = ['update_available' => 0, 'installed' => 0, 'not_installed' => 0, 'incompatible' => 0, 'error' => 0];
+	foreach ($this->items as $item)
+	{
+		if (isset($stateCounts[$item->state]))
+		{
+			$stateCounts[$item->state]++;
+		}
+	}
+	$stateChips = [
+		''                 => ['label' => 'COM_FGEXTENSIONMANAGER_FILTER_ALL', 'class' => 'btn-outline-secondary', 'count' => count($this->items)],
+		'update_available' => ['label' => 'COM_FGEXTENSIONMANAGER_STATE_UPDATE_AVAILABLE', 'class' => 'btn-outline-warning', 'count' => $stateCounts['update_available']],
+		'installed'        => ['label' => 'COM_FGEXTENSIONMANAGER_STATE_INSTALLED', 'class' => 'btn-outline-success', 'count' => $stateCounts['installed']],
+		'not_installed'    => ['label' => 'COM_FGEXTENSIONMANAGER_STATE_NOT_INSTALLED', 'class' => 'btn-outline-secondary', 'count' => $stateCounts['not_installed']],
+		'incompatible'     => ['label' => 'COM_FGEXTENSIONMANAGER_STATE_INCOMPATIBLE', 'class' => 'btn-outline-dark', 'count' => $stateCounts['incompatible']],
+	];
+	?>
+	<?php if (!empty($this->items)) : ?>
+	<div class="mb-2 d-flex flex-wrap gap-1" id="fgem-state-filters">
+		<?php foreach ($stateChips as $stateValue => $chip) : ?>
+			<?php if ($stateValue !== '' && $chip['count'] === 0) : continue; endif; ?>
+			<button
+				type="button"
+				class="btn btn-sm <?php echo $chip['class']; ?><?php echo $stateValue === '' ? ' active' : ''; ?>"
+				data-fgem-state-filter="<?php echo htmlspecialchars($stateValue, ENT_QUOTES, 'UTF-8'); ?>"
+			>
+				<?php echo Text::_($chip['label']); ?> (<?php echo $chip['count']; ?>)
+			</button>
+		<?php endforeach; ?>
+	</div>
+	<?php endif; ?>
+
 	<div class="d-flex align-items-center mb-3 flex-wrap gap-2">
 		<?php if (!empty($this->items)) : ?>
 		<input
@@ -149,89 +184,8 @@ usort($this->items, function ($a, $b) use ($order) {
 		</div>
 	<?php else : ?>
 
-	<style>
-		/*
-		 * CSS Grid instead of an HTML <table>: a spanning cell (the changelog
-		 * detail row) uses grid-column: 1 / -1 natively, with zero risk of
-		 * affecting other rows' column widths - the exact problem
-		 * 1.18.1-1.18.3 spent three releases fighting with table-layout:fixed,
-		 * a display:block override on <tr>/<td>, and a JS width-measuring
-		 * workaround, none of which are needed here. Each "row" is a
-		 * display:contents wrapper so its cells become direct grid items of
-		 * the single outer grid (needed for column alignment across rows);
-		 * the wrapper itself generates no box, so striping/borders are
-		 * applied per-cell in PHP below rather than to the row.
-		 */
-		#fgem-table {
-			display: grid;
-			grid-template-columns: 40% 9% 9% 7% 7% 16% 12%;
-			width: 100%;
-		}
-		#fgem-table [role="row"] {
-			display: contents;
-		}
-		#fgem-table [role="columnheader"] {
-			font-weight: bold;
-			padding: 8px;
-			border-bottom: 2px solid var(--bs-border-color, #dee2e6);
-		}
-		#fgem-table [role="cell"] {
-			padding: 8px;
-			border-bottom: 1px solid var(--bs-border-color, #dee2e6);
-		}
 
-		@media (max-width: 767.98px) {
-			#fgem-table {
-				grid-template-columns: 1fr;
-			}
-			#fgem-table [role="columnheader"] {
-				position: absolute;
-				width: 1px;
-				height: 1px;
-				overflow: hidden;
-				clip: rect(0, 0, 0, 0);
-				white-space: nowrap;
-			}
-			#fgem-table [role="cell"] {
-				padding: 4px 0 4px 42%;
-				position: relative;
-				text-align: left !important;
-				border-bottom: none;
-			}
-			#fgem-table [role="cell"][data-label]::before {
-				content: attr(data-label) ":";
-				position: absolute;
-				left: 0;
-				width: 38%;
-				font-weight: bold;
-				white-space: normal;
-			}
-			#fgem-table [role="cell"][data-row-start] {
-				padding-left: 0;
-				margin-top: 12px;
-				border-top: 1px solid var(--bs-border-color, #dee2e6);
-				padding-top: 10px;
-			}
-			#fgem-table [role="cell"][data-row-end] {
-				padding-bottom: 10px;
-			}
-		}
-
-		/*
-		 * .bg-light is a Bootstrap utility that Bootstrap 5.3's own
-		 * color-mode system (confirmed in use - Atum sets data-bs-theme on
-		 * <html>) is supposed to remap automatically under dark mode, but
-		 * that depends on Atum's own variable setup being complete - adding
-		 * an explicit override here too rather than assuming, since this
-		 * couldn't be verified live from here.
-		 */
-		[data-bs-theme="dark"] .fgem-changelog-body {
-			background-color: rgba(255, 255, 255, 0.06) !important;
-			color: inherit;
-		}
-	</style>
-
-	<div class="table-responsive">
+	<div class="table-responsive" id="fgem-table-wrapper">
 	<div id="fgem-table" role="table">
 		<div role="row">
 			<div role="columnheader"><?php echo Text::_('COM_FGEXTENSIONMANAGER_COL_NAME'); ?></div>
@@ -256,7 +210,7 @@ usort($this->items, function ($a, $b) use ($order) {
 			// like the hidden-<tr> nth-child bug from 1.13.4).
 			$cellStyle = $i % 2 === 1 ? ' style="background-color: rgba(0,0,0,0.03);"' : '';
 		?>
-			<div role="row" data-fgem-search="<?php echo $searchText; ?>">
+			<div role="row" data-fgem-search="<?php echo $searchText; ?>" data-fgem-state="<?php echo htmlspecialchars($item->state, ENT_QUOTES, 'UTF-8'); ?>">
 				<div role="cell" data-row-start<?php echo $cellStyle; ?>>
 					<strong class="text-primary"><?php echo htmlspecialchars($item->name ?? $item->label, ENT_QUOTES, 'UTF-8'); ?></strong>
 					<?php if (!empty($item->technical_id)) : ?>

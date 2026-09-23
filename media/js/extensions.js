@@ -14,11 +14,18 @@
 (function () {
 	'use strict';
 
-	function fgemFilterRows(query) {
+	var fgemActiveState = '';
+
+	function fgemApplyFilters() {
+		var query = (document.getElementById('fgem-filter') || {}).value || '';
 		query = query.toLowerCase().trim();
+
 		var rows = document.querySelectorAll('#fgem-table [role="row"][data-fgem-search]');
 		rows.forEach(function (row) {
-			var matches = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
+			var textMatches  = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
+			var stateMatches = fgemActiveState === '' || row.getAttribute('data-fgem-state') === fgemActiveState;
+			var matches      = textMatches && stateMatches;
+
 			// The row wrapper is display:contents by default (see the CSS) so its
 			// cells become direct grid items - clearing to '' here would fall
 			// back to the element's normal default (block), breaking the grid
@@ -94,8 +101,21 @@
 		var filterInput = document.getElementById('fgem-filter');
 
 		if (filterInput) {
-			filterInput.addEventListener('input', function () {
-				fgemFilterRows(filterInput.value);
+			filterInput.addEventListener('input', fgemApplyFilters);
+		}
+
+		var stateFilters = document.getElementById('fgem-state-filters');
+
+		if (stateFilters) {
+			stateFilters.querySelectorAll('[data-fgem-state-filter]').forEach(function (chip) {
+				chip.addEventListener('click', function () {
+					stateFilters.querySelectorAll('[data-fgem-state-filter]').forEach(function (other) {
+						other.classList.remove('active');
+					});
+					chip.classList.add('active');
+					fgemActiveState = chip.getAttribute('data-fgem-state-filter');
+					fgemApplyFilters();
+				});
 			});
 		}
 
