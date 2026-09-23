@@ -58,9 +58,7 @@ class CompatibilityEvaluator
 				continue;
 			}
 
-			$regex = str_replace('/', '\/', $entry->targetplatform);
-
-			if (@preg_match('/^' . $regex . '/', $jVersion) !== 1)
+			if (!self::targetplatformMatches($entry->targetplatform, $jVersion))
 			{
 				continue;
 			}
@@ -81,6 +79,46 @@ class CompatibilityEvaluator
 		}
 
 		return [$bestFull, $bestPlatformOnly];
+	}
+
+	/**
+	 * A repo's `<targetplatform version="...">` is a regex, but it comes
+	 * from a fetched updates.xml - a remote source, less trusted than our
+	 * own code - and gets interpolated directly into a PCRE pattern with no
+	 * validation. A crafted pathological pattern (catastrophic
+	 * backtracking, e.g. nested quantifiers like `(x+)+`) could make a
+	 * single preg_match() burn real CPU time. PHP's own
+	 * pcre.backtrack_limit/pcre.recursion_limit already bound this
+	 * (matches don't hang forever), but their defaults are sized for
+	 * legitimate, complex patterns - far more headroom than a
+	 * three-numbers-and-some-brackets version pattern ever needs. Reject
+	 * absurdly long patterns outright, and temporarily lower both limits
+	 * for this one evaluation only, restoring them straight after - bounds
+	 * the worst case tightly without affecting anything else in the request.
+	 */
+	private const TARGETPLATFORM_MAX_LENGTH = 200;
+
+	private static function targetplatformMatches(string $targetplatform, string $jVersion): bool
+	{
+		if ($targetplatform === '' || strlen($targetplatform) > self::TARGETPLATFORM_MAX_LENGTH)
+		{
+			return false;
+		}
+
+		$regex = str_replace('/', '\/', $targetplatform);
+
+		$previousBacktrack  = ini_get('pcre.backtrack_limit');
+		$previousRecursion  = ini_get('pcre.recursion_limit');
+
+		ini_set('pcre.backtrack_limit', '20000');
+		ini_set('pcre.recursion_limit', '2000');
+
+		$result = @preg_match('/^' . $regex . '/', $jVersion);
+
+		ini_set('pcre.backtrack_limit', $previousBacktrack);
+		ini_set('pcre.recursion_limit', $previousRecursion);
+
+		return $result === 1;
 	}
 
 	/**

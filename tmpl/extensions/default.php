@@ -85,6 +85,12 @@ usort($this->items, function ($a, $b) use ($order) {
 						</button>
 					<?php endif; ?>
 
+					<?php if ($canManage && !empty($selfItem->manage_url)) : ?>
+						<a href="<?php echo Route::_($selfItem->manage_url); ?>" class="btn btn-dark btn-sm">
+							<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_SETTINGS'); ?>
+						</a>
+					<?php endif; ?>
+
 					<?php if (!empty($selfItem->changelog_preview)) : ?>
 						<button
 							type="button"
@@ -211,6 +217,19 @@ usort($this->items, function ($a, $b) use ($order) {
 				padding-bottom: 10px;
 			}
 		}
+
+		/*
+		 * .bg-light is a Bootstrap utility that Bootstrap 5.3's own
+		 * color-mode system (confirmed in use - Atum sets data-bs-theme on
+		 * <html>) is supposed to remap automatically under dark mode, but
+		 * that depends on Atum's own variable setup being complete - adding
+		 * an explicit override here too rather than assuming, since this
+		 * couldn't be verified live from here.
+		 */
+		[data-bs-theme="dark"] .fgem-changelog-body {
+			background-color: rgba(255, 255, 255, 0.06) !important;
+			color: inherit;
+		}
 	</style>
 
 	<div class="table-responsive">
@@ -320,13 +339,18 @@ usort($this->items, function ($a, $b) use ($order) {
 						<?php endif; ?>
 
 						<?php if ($canDelete && in_array($item->state, ['installed', 'update_available'], true)) : ?>
+							<?php
+							$uninstallConfirmKey = $item->type === 'package'
+								? 'COM_FGEXTENSIONMANAGER_UNINSTALL_CONFIRM_PACKAGE'
+								: 'COM_FGEXTENSIONMANAGER_UNINSTALL_CONFIRM';
+							?>
 							<button
 								type="submit"
 								name="task"
 								value="extensions.uninstall"
 								formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.uninstall&key=' . urlencode($item->key)); ?>"
 								class="btn btn-danger btn-sm"
-								onclick="return confirm(<?php echo htmlspecialchars(json_encode(Text::sprintf('COM_FGEXTENSIONMANAGER_UNINSTALL_CONFIRM', $item->name ?? $item->label)), ENT_QUOTES, 'UTF-8'); ?>);"
+								onclick="return confirm(<?php echo htmlspecialchars(json_encode(Text::sprintf($uninstallConfirmKey, $item->name ?? $item->label)), ENT_QUOTES, 'UTF-8'); ?>);"
 							>
 								<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_UNINSTALL'); ?>
 							</button>
@@ -360,7 +384,7 @@ usort($this->items, function ($a, $b) use ($order) {
 				<div role="row" class="fgem-detail-row">
 					<div role="cell" style="grid-column: 1 / -1;" class="p-0">
 						<div class="collapse" id="fgem-changelog-<?php echo (int) $i; ?>">
-							<div class="p-3 bg-light">
+							<div class="p-3 bg-light fgem-changelog-body">
 								<div class="small" style="white-space: pre-wrap; overflow-wrap: break-word;"><?php echo htmlspecialchars($item->changelog_preview, ENT_QUOTES, 'UTF-8'); ?></div>
 								<a href="<?php echo htmlspecialchars($item->changelog_full_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="small">
 									<?php echo Text::_('COM_FGEXTENSIONMANAGER_LINK_FULL_CHANGELOG'); ?>

@@ -96,7 +96,14 @@ class InstallHelper
 		// get misread as coming from this install/update call.
 		$app->getMessageQueue(true);
 
-		$installer = Installer::getInstance();
+		// A fresh instance, not Installer::getInstance() - confirmed via
+		// Joomla's own issue tracker (joomla-cms#41087) that the singleton
+		// leaks state (manifestClass in particular) between extensions when
+		// looping updates/installs in the same request - exactly what
+		// extensions.updateAll() does. Core's own recommended fix is to stop
+		// using getInstance() and create a fresh one each time, "just like
+		// PackageAdapter does".
+		$installer = new Installer();
 		$success   = $isUpdate
 			? (bool) $installer->update($package['dir'])
 			: (bool) $installer->install($package['dir']);
@@ -148,7 +155,8 @@ class InstallHelper
 
 		$app->getMessageQueue(true);
 
-		$installer = Installer::getInstance();
+		// Same fresh-instance reasoning as installFromUrl() above.
+		$installer = new Installer();
 		$success   = (bool) $installer->uninstall($type, $extensionId);
 
 		$messages = [];
@@ -178,7 +186,12 @@ class InstallHelper
 		return [$success, implode(' ', $messages)];
 	}
 
-	private static function clearExtensionCaches(): void
+	/**
+	 * Clears the cache groups Joomla itself reads plugin/module enabled
+	 * state from, so a change takes effect immediately instead of waiting
+	 * for the cache to expire or a manual "Clear Cache".
+	 */
+	public static function clearExtensionCaches(): void
 	{
 		try
 		{

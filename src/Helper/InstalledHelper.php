@@ -28,54 +28,165 @@ class InstalledHelper
 	 */
 	public static function find(object $entry): ?object
 	{
+		$result = self::findBatch(['_single' => $entry]);
+
+		return $result['_single'] ?? null;
+	}
+
+	/**
+	 * Batched version of find(): looks up installed status for MANY entries
+	 * in a SINGLE query instead of one query per entry - the previous
+	 * per-item find() call in RepoHelper::getCatalog()'s loop meant one
+	 * query per tracked repo (13 for his current 12 repos + self), an N+1
+	 * pattern that scales with the catalog size for no real reason, since
+	 * every lookup happens in the same request anyway.
+	 *
+	 * @param   array<string, object>  $entries  Normalized update entries, keyed however the caller likes - the same keys come back in the result.
+	 *
+	 * @return  array<string, object>  Only keys that ARE installed are present, each the same shape find() returns.
+	 */
+	public static function findBatch(array $entries): array
+	{
+		if (empty($entries))
+		{
+			return [];
+		}
+
 		$db    = Factory::getContainer()->get(DatabaseInterface::class);
 		$query = $db->getQuery(true)
-			->select($db->quoteName(['extension_id', 'manifest_cache', 'enabled', 'protected']))
+			->select($db->quoteName(['type', 'element', 'folder', 'client_id', 'extension_id', 'manifest_cache', 'enabled', 'protected']))
 			->from($db->quoteName('#__extensions'));
 
-		$resolvedElement = $entry->element;
+		$resolved   = [];
+		$conditions = [];
 
+		foreach ($entries as $key => $entry)
+		{
+			$info = self::resolveElement($entry);
+
+			if ($info === null)
+			{
+				continue;
+			}
+
+			$resolved[$key] = $info;
+
+			$group = [
+				$db->quoteName('type') . ' = ' . $db->quote($info['type']),
+				$db->quoteName('element') . ' = ' . $db->quote($info['element']),
+			];
+
+			if ($info['type'] === 'plugin')
+			{
+				$group[] = $db->quoteName('folder') . ' = ' . $db->quote($entry->folder);
+			}
+			elseif ($info['type'] === 'module')
+			{
+				$group[] = $db->quoteName('client_id') . ' = ' . (int) $info['client_id'];
+			}
+
+			$conditions[] = '(' . implode(' AND ', $group) . ')';
+		}
+
+		if (empty($conditions))
+		{
+			return [];
+		}
+
+		// The same (type, element[, folder/client_id]) combination can
+		// legitimately repeat across keys (e.g. if two catalog entries ever
+		// resolved to the same installed extension) - deduplicating keeps
+		// the WHERE clause from growing pointlessly.
+		$query->where('(' . implode(' OR ', array_unique($conditions)) . ')');
+		$db->setQuery($query);
+
+		$rows = $db->loadObjectList();
+
+		if (empty($rows))
+		{
+			return [];
+		}
+
+		$results = [];
+
+		foreach ($entries as $key => $entry)
+		{
+			if (!isset($resolved[$key]))
+			{
+				continue;
+			}
+
+			foreach ($rows as $row)
+			{
+				if ($row->type !== $resolved[$key]['type'] || $row->element !== $resolved[$key]['element'])
+				{
+					continue;
+				}
+
+				if ($resolved[$key]['type'] === 'plugin' && $row->folder !== $entry->folder)
+				{
+					continue;
+				}
+
+				if ($resolved[$key]['type'] === 'module' && (int) $row->client_id !== $resolved[$key]['client_id'])
+				{
+					continue;
+				}
+
+				$results[$key] = self::buildResult($row, $entry, $resolved[$key]['element']);
+				break;
+			}
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Normalizes an update entry's element to the fully-prefixed form
+	 * #__extensions actually stores, per type - shared by find() and
+	 * findBatch() so the two can't drift apart on this logic.
+	 *
+	 * @return  array{type: string, element: string, client_id?: int}|null
+	 */
+	private static function resolveElement(object $entry): ?array
+	{
 		switch ($entry->type)
 		{
 			case 'component':
-				$resolvedElement = str_starts_with($entry->element, 'com_') ? $entry->element : 'com_' . $entry->element;
-				$query->where($db->quoteName('type') . ' = ' . $db->quote('component'))
-					->where($db->quoteName('element') . ' = ' . $db->quote($resolvedElement));
-				break;
+				return [
+					'type'    => 'component',
+					'element' => str_starts_with($entry->element, 'com_') ? $entry->element : 'com_' . $entry->element,
+				];
 
 			case 'module':
-				$resolvedElement = str_starts_with($entry->element, 'mod_') ? $entry->element : 'mod_' . $entry->element;
-				$clientId        = $entry->client === 'administrator' ? 1 : 0;
-				$query->where($db->quoteName('type') . ' = ' . $db->quote('module'))
-					->where($db->quoteName('element') . ' = ' . $db->quote($resolvedElement))
-					->where($db->quoteName('client_id') . ' = ' . (int) $clientId);
-				break;
+				return [
+					'type'      => 'module',
+					'element'   => str_starts_with($entry->element, 'mod_') ? $entry->element : 'mod_' . $entry->element,
+					'client_id' => $entry->client === 'administrator' ? 1 : 0,
+				];
 
 			case 'plugin':
 				// #__extensions stores the BARE plugin element (no "plg_<folder>_" prefix).
-				$query->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
-					->where($db->quoteName('element') . ' = ' . $db->quote($entry->element))
-					->where($db->quoteName('folder') . ' = ' . $db->quote($entry->folder));
-				break;
+				return ['type' => 'plugin', 'element' => $entry->element];
 
 			case 'package':
-				$resolvedElement = str_starts_with($entry->element, 'pkg_') ? $entry->element : 'pkg_' . $entry->element;
-				$query->where($db->quoteName('type') . ' = ' . $db->quote('package'))
-					->where($db->quoteName('element') . ' = ' . $db->quote($resolvedElement));
-				break;
+				return [
+					'type'    => 'package',
+					'element' => str_starts_with($entry->element, 'pkg_') ? $entry->element : 'pkg_' . $entry->element,
+				];
 
 			default:
 				return null;
 		}
+	}
 
-		$db->setQuery($query);
-		$row = $db->loadObject();
-
-		if (!$row)
-		{
-			return null;
-		}
-
+	/**
+	 * Builds the {extension_id, version, enabled, protected} result object
+	 * from a matched #__extensions row, including the manifest-file
+	 * fallback when manifest_cache's version is missing/corrupted.
+	 */
+	private static function buildResult(object $row, object $entry, string $resolvedElement): object
+	{
 		$version = null;
 
 		if (!empty($row->manifest_cache))
@@ -141,6 +252,13 @@ class InstalledHelper
 		{
 			return [false, $e->getMessage()];
 		}
+
+		// Same caches install()/update()/uninstall() already clear (1.6.1
+		// et al.) - plugin/module enabled state is exactly what these hold,
+		// so skipping this left a just-disabled plugin still "on" from the
+		// cache's point of view until it expired or someone cleared it
+		// manually.
+		InstallHelper::clearExtensionCaches();
 
 		return [true, $enabled
 			? Text::_('COM_FGEXTENSIONMANAGER_ENABLED_SUCCESS')

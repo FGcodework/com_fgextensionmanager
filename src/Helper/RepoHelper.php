@@ -72,7 +72,8 @@ class RepoHelper
 		$primary    = self::fetchPrimaryBatch($rows, $timeout, $cacheMinutes, $refresh);
 		$changelogs = self::fetchChangelogBatch($rows, $timeout, $cacheMinutes, $refresh);
 
-		$catalog = [];
+		$catalog    = [];
+		$bestByRepo = [];
 
 		foreach ($rows as $ownerRepo => $repoData)
 		{
@@ -246,7 +247,30 @@ class RepoHelper
 				$item->label = $item->name;
 			}
 
-			$installed = InstalledHelper::find($best);
+			// Installed-status is looked up in ONE batched query after this
+			// loop (see below) instead of here, one query per repo - $best
+			// is only kept around long enough for that.
+			$bestByRepo[$ownerRepo] = $best;
+
+			$catalog[] = $item;
+		}
+
+		// One query for every repo's installed status instead of one query
+		// per repo - the per-item InstalledHelper::find() call this replaced
+		// meant N database round-trips (13 for his current 12 repos + self)
+		// for no real benefit, since every lookup happens in the same
+		// request regardless.
+		$installedBatch = InstalledHelper::findBatch($bestByRepo);
+
+		foreach ($catalog as $item)
+		{
+			if (!isset($bestByRepo[$item->key]))
+			{
+				continue;
+			}
+
+			$best      = $bestByRepo[$item->key];
+			$installed = $installedBatch[$item->key] ?? null;
 
 			if ($installed === null)
 			{
@@ -270,9 +294,7 @@ class RepoHelper
 				}
 			}
 
-			$item->changelog_preview = self::extractChangelogSince($changelogs[$ownerRepo] ?? null, $item->installed_version);
-
-			$catalog[] = $item;
+			$item->changelog_preview = self::extractChangelogSince($changelogs[$item->owner_repo] ?? null, $item->installed_version);
 		}
 
 		usort($catalog, fn ($a, $b) => strcasecmp($a->name ?? $a->label, $b->name ?? $b->label));
@@ -472,7 +494,11 @@ class RepoHelper
 
 			// A repo with no CHANGELOG.md at all (a 404) is a normal,
 			// expected case - not treated as staleness, unlike updates.xml.
-			$results[$ownerRepo] = self::fallbackToStaleCache($info['cache_file']);
+			// Deliberately NOT calling fallbackToStaleCache() here: that
+			// always calls noteStale(), which would mark the whole catalog
+			// "stale" if a repo's CHANGELOG.md ever existed before and was
+			// later removed - reading any leftover cache quietly instead.
+			$results[$ownerRepo] = is_file($info['cache_file']) ? (@file_get_contents($info['cache_file']) ?: null) : null;
 		}
 
 		return $results;
@@ -785,19 +811,22 @@ class RepoHelper
 	 * A link to the installed extension's own settings screen, where Joomla
 	 * has one well-defined target: a plugin's edit screen (com_plugins,
 	 * keyed by extension_id - yes, that's really the field name com_plugins
-	 * uses, even though plugins live in #__extensions), or a component's own
-	 * admin screen (its default view, which for most single-purpose admin
-	 * tools like this one *is* effectively its "settings"). Returns null for
-	 * module/package - a module type has no single settings screen (zero,
-	 * one, or many published instances could exist), and a package bundles
-	 * other extensions rather than having settings of its own.
+	 * uses, even though plugins live in #__extensions), or a component's
+	 * actual Options screen via com_config (confirmed against this very
+	 * component's own Options toolbar link:
+	 * "index.php?option=com_config&view=component&component=com_x" - NOT
+	 * "index.php?option=com_x" alone, which just opens the component's main
+	 * admin view, not its settings). Returns null for module/package - a
+	 * module type has no single settings screen (zero, one, or many
+	 * published instances could exist), and a package bundles other
+	 * extensions rather than having settings of its own.
 	 */
 	private static function buildManageUrl(string $type, string $element, int $extensionId): ?string
 	{
 		return match ($type)
 		{
 			'plugin'    => 'index.php?option=com_plugins&task=plugin.edit&extension_id=' . $extensionId,
-			'component' => 'index.php?option=' . $element,
+			'component' => 'index.php?option=com_config&view=component&component=' . $element,
 			default     => null,
 		};
 	}
@@ -1056,6 +1085,23 @@ class RepoHelper
 	 * a server-side fetch, so this is an SSRF boundary, not just an XSS one.
 	 * Requires https:// (via isSafeExternalUrl()) AND a host from the
 	 * GitHub-only allowlist above.
+	 *
+	 * Known, accepted limitation (confirmed against Joomla core's actual
+	 * source for InstallerHelper::downloadPackage()): on a 302 response it
+	 * recursively calls itself with the raw `Location` header, with NO
+	 * host/URL re-validation on the redirect target - a URL that passes
+	 * this check could still end up fetching from somewhere else entirely
+	 * if the allowlisted host ever redirected there. This isn't unique to
+	 * this component - it's true of ANY Joomla code (including core's own
+	 * "Install from URL") that calls downloadPackage() with a URL sourced
+	 * from outside the request. Not fixed here: doing so would mean
+	 * reimplementing package downloading independently of Joomla's own
+	 * helper (its own temp-file handling, checksum hookup, redirect
+	 * following for the *legitimate* github.com -> objects.githubusercontent.com
+	 * chain, etc.), which risks introducing new bugs in exchange for
+	 * closing a gap that, for these specific first-party GitHub hosts,
+	 * would require GitHub's own infrastructure - not a malicious repo
+	 * owner - to actually redirect somewhere unsafe.
 	 */
 	private static function isSafeDownloadUrl(string $url): bool
 	{

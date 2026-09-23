@@ -1,5 +1,59 @@
 # Changelog
 
+## 1.23.0
+- Worked through a 12-point analysis (A-L), verifying each claim directly against the code or an
+  authoritative source before fixing - two turned out to be independently confirmed via
+  Joomla's own issue tracker and source code, not just plausible-sounding theory:
+  - **A (critical)**: `updateAll()` looping `Installer::getInstance()` - confirmed via
+    joomla-cms#41087 (a Joomla core maintainer's own diagnosis of this exact bug pattern: the
+    singleton leaks `manifestClass` between extensions when looping updates). Switched to
+    `new Installer()` in both `installFromUrl()` and `uninstallExtension()`, matching core's
+    own recommended fix ("just like PackageAdapter does").
+  - **B**: `setEnabled()` (toggle) never cleared the `_system`/`com_plugins`/etc. cache groups
+    that install/update/uninstall already did - a just-disabled plugin stayed "on" from the
+    cache's point of view. Fixed.
+  - **C**: a missing CHANGELOG.md (404) was still triggering the "stale data" banner via
+    `fallbackToStaleCache()` (which always calls `noteStale()`) whenever a leftover cache file
+    existed from before the file was removed - despite a comment saying otherwise. Now reads
+    any leftover cache quietly, without flagging staleness, matching the comment's actual intent.
+  - **D**: our own `updates.xml` had no checksum, so the sha256/384/512-verification code we
+    built never actually got exercised by our own release. Added (see below).
+  - **E**: `InstalledHelper::find()` ran one query per catalog item - 13 queries for his current
+    12 repos + self. Replaced with `findBatch()`: one query for everyone, matched back to each
+    entry by (type, element, folder/client_id). Verified the batch-matching logic directly
+    against mixed types (plugin/component/package, installed and not).
+  - **F**: `targetplatform`'s regex, from a remote updates.xml, was interpolated into
+    `preg_match()` with no validation - a genuine ReDoS surface. Added a length cap and
+    temporarily lower `pcre.backtrack_limit`/`recursion_limit` around just this evaluation.
+    Verified: a classic catastrophic-backtracking pattern now resolves in ~0.07ms instead of
+    hanging, real patterns are unaffected.
+  - **G**: confirmed directly in Joomla core's actual source for
+    `InstallerHelper::downloadPackage()` - on a redirect it recursively calls itself with the
+    raw `Location` header, no host re-validation. This is a genuine gap in Joomla core itself
+    (shared by core's own "Install from URL"), not something safely fixable here without
+    reimplementing package downloading independently - documented clearly in the code instead
+    of left unexplained.
+  - **H**: `config.xml`'s two `hint` attributes were literal Slovak text, not translatable -
+    confirmed `FormField::$translateHint` defaults to true (hints ARE translated), so this was
+    a real, fixable i18n bug, not just cosmetic. Now proper language keys.
+  - **I**: dark mode - the worst offender (a fixed coral tint on the self table row) was already
+    gone since 1.22.0's CSS Grid rewrite switched striping to a neutral `rgba(0,0,0,0.03)`,
+    which works in both modes. Added an explicit dark-mode override for the one remaining
+    `.bg-light` (the changelog preview panel) as defense-in-depth, since Atum's own Bootstrap
+    5.3 dark-mode remapping couldn't be verified live from here.
+  - **J**: a component's "Settings" linked to `index.php?option=com_x` (its main admin view),
+    not its actual Options screen - confirmed the correct pattern
+    (`index.php?option=com_config&view=component&component=com_x`) directly from this very
+    component's own Options toolbar link. Fixed - and since this also removes the
+    self-referential-link reasoning that had the self card's Settings button left out entirely
+    (1.16.0/1.16.1), added it back now that it points somewhere genuinely useful.
+  - **K**: `RepoHelper` is at 1425 lines now (up from 1330), still no tests. Real, accumulating
+    debt - not attempted in this same session given the size of everything else already
+    touched here; the incremental-extraction approach from 1.8.0 (pulling out
+    `CompatibilityEvaluator` first) is still the right direction for a focused follow-up.
+  - **L**: uninstalling a package silently didn't mention that every extension bundled inside
+    it gets removed too, not just the package entry - added a package-specific confirm message.
+
 ## 1.22.1
 - Three precision fixes to `extractChangelogSince()` (1.11.0/1.17.0/1.21.1's accumulated
   accuracy notes):

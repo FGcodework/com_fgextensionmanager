@@ -6,7 +6,7 @@
 			type="text"
 			label="COM_FGEXTENSIONMANAGER_FIELD_DISCOVER_OWNER_LABEL"
 			description="COM_FGEXTENSIONMANAGER_FIELD_DISCOVER_OWNER_DESC"
-			hint="napr. FGcodework"
+			hint="COM_FGEXTENSIONMANAGER_FIELD_DISCOVER_OWNER_HINT"
 			default="FGcodework"
 		/>
 		<field
@@ -14,7 +14,7 @@
 			type="text"
 			label="COM_FGEXTENSIONMANAGER_FIELD_DISCOVER_TOPIC_LABEL"
 			description="COM_FGEXTENSIONMANAGER_FIELD_DISCOVER_TOPIC_DESC"
-			hint="napr. fg-joomla-extension"
+			hint="COM_FGEXTENSIONMANAGER_FIELD_DISCOVER_TOPIC_HINT"
 			default="fg-joomla-extension"
 		/>
 	</fieldset>
