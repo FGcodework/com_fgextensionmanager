@@ -15,6 +15,7 @@ use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Installer\InstallerHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\Database\DatabaseInterface;
 
 defined('_JEXEC') or die;
 
@@ -103,7 +104,16 @@ class InstallHelper
 		// extensions.updateAll() does. Core's own recommended fix is to stop
 		// using getInstance() and create a fresh one each time, "just like
 		// PackageAdapter does".
+		//
+		// setDatabase() is required on Joomla 6+: a separate, confirmed core
+		// regression (joomla-cms#45653, fixed by #45670) - up through 5.3
+		// this happened automatically in the Adapter constructor, but that
+		// got lost when Installer's own constructor was rewritten for 6.0,
+		// so a manually-created instance now has to set it explicitly or
+		// every install/update call fails with "Database not set in
+		// Joomla\CMS\Installer\Installer".
 		$installer = new Installer();
+		$installer->setDatabase(Factory::getContainer()->get(DatabaseInterface::class));
 		$success   = $isUpdate
 			? (bool) $installer->update($package['dir'])
 			: (bool) $installer->install($package['dir']);
@@ -155,8 +165,10 @@ class InstallHelper
 
 		$app->getMessageQueue(true);
 
-		// Same fresh-instance reasoning as installFromUrl() above.
+		// Same fresh-instance reasoning as installFromUrl() above, including
+		// the required setDatabase() call (joomla-cms#45653).
 		$installer = new Installer();
+		$installer->setDatabase(Factory::getContainer()->get(DatabaseInterface::class));
 		$success   = (bool) $installer->uninstall($type, $extensionId);
 
 		$messages = [];

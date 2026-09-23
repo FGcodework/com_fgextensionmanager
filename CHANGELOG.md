@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.25.3
+- **Fixed "Database not set in Joomla\CMS\Installer\Installer" on Joomla 6** (broke Update
+  All / Install / Uninstall entirely there since 1.23.0's `new Installer()` fix for the
+  stale-state bug). Confirmed as a separate, genuine Joomla 6.0 core regression
+  (joomla-cms#45653, fixed upstream by #45670): "in J5.3, setDatabase was performed in the
+  Adapter construct function. That's missing in the new [6.0] Installer construct function."
+  A manually-created `Installer` instance on Joomla 6 needs `setDatabase()` called explicitly -
+  added right after `new Installer()` in both `installFromUrl()` and `uninstallExtension()`.
+  Confirmed `setDatabase()` has existed on `Installer` since Joomla 4.2, so this is safe (just
+  redundant, not harmful) on Joomla 5 too - no version-conditional logic needed.
+
 ## 1.25.2
 - Replaced the native browser `confirm()` for "Update All" with `JoomlaDialog.confirm()` -
   Joomla's own dialog web component (confirmed in the official docs as a purpose-built
