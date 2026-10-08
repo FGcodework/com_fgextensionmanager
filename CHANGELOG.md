@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.26.0
+- New logo in the Extension column: each repo's `assets/logo.webp` is shown (falling back to
+  `assets/logo.png`, then to a letter tile if neither exists), lazy-loaded.
+- Removed the Repository column; the GitHub repo is now a small icon link next to the extension
+  name (tooltip shows `owner/repo`). Search by `owner/repo` still works. The freed width went
+  to the Extension column.
+
 ## 1.25.8
 - Clarified the GitHub Owner/Org and Topic field descriptions in Options: they're still
   editable (this is the intended way to reuse this component for a different GitHub account's

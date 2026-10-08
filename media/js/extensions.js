@@ -102,6 +102,43 @@ function fgemInterceptToolbarButton(iconClass, onIntercepted) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+	// Logos: assets/logo.webp first, then assets/logo.png, otherwise the
+	// letter tile stays visible (CSS). Done with listeners instead of inline
+	// onerror= so it also works under a strict CSP.
+	document.querySelectorAll('#fgem-table .fgem-logo img').forEach(function (img) {
+		var tile = img.parentNode;
+
+		var markOk = function () {
+			tile.classList.add('fgem-logo-ok');
+		};
+		var fail = function () {
+			var fallback = img.getAttribute('data-fgem-fallback');
+
+			if (fallback) {
+				img.removeAttribute('data-fgem-fallback');
+				img.src = fallback;
+			}
+		};
+
+		img.addEventListener('load', function () {
+			if (img.naturalWidth > 0) {
+				markOk();
+			} else {
+				fail();
+			}
+		});
+		img.addEventListener('error', fail);
+
+		// Image may have finished (or failed) before this listener existed.
+		if (img.complete) {
+			if (img.naturalWidth > 0) {
+				markOk();
+			} else {
+				fail();
+			}
+		}
+	});
+
 	var filterInput = document.getElementById('fgem-filter');
 
 	if (filterInput) {
