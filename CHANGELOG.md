@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.26.3
+- The "this extension" card at the top now shows the FG Extension Manager logo and the GitHub
+  link too, matching the list rows.
+
 ## 1.26.2
 - The GitHub link next to the extension name showed two icons (the GitHub mark plus the
   admin template's automatic "external link" icon). Only the GitHub mark is shown now.

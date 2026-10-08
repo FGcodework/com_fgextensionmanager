@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	// Logos: assets/logo.webp first, then assets/logo.png, otherwise the
 	// letter tile stays visible (CSS). Done with listeners instead of inline
 	// onerror= so it also works under a strict CSP.
-	document.querySelectorAll('#fgem-table .fgem-logo img').forEach(function (img) {
+	document.querySelectorAll('.fgem-logo img').forEach(function (img) {
 		var tile = img.parentNode;
 
 		var markOk = function () {

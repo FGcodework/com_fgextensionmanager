@@ -61,9 +61,19 @@ usort($this->items, function ($a, $b) use ($order) {
 	<?php if ($selfItem !== null) : ?>
 		<div class="card mb-4" style="border-left: 4px solid #FF6B4A;">
 			<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
-				<div>
-					<strong class="text-primary"><?php echo htmlspecialchars($selfItem->name ?? $selfItem->label, ENT_QUOTES, 'UTF-8'); ?></strong>
+				<?php
+				$selfName     = (string) ($selfItem->name ?? $selfItem->label);
+				$selfLogoBase = 'https://github.com/' . $selfItem->owner_repo . '/raw/HEAD/assets/logo';
+				$selfInitial  = mb_strtoupper(mb_substr(trim((string) preg_replace('/^FG[\s_-]*/i', '', trim($selfName))) ?: '?', 0, 1));
+				?>
+				<div class="fgem-ext">
+					<span class="fgem-logo" data-initial="<?php echo htmlspecialchars($selfInitial, ENT_QUOTES, 'UTF-8'); ?>" aria-hidden="true"><img src="<?php echo htmlspecialchars($selfLogoBase . '.webp', ENT_QUOTES, 'UTF-8'); ?>" data-fgem-fallback="<?php echo htmlspecialchars($selfLogoBase . '.png', ENT_QUOTES, 'UTF-8'); ?>" alt="" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+					<div class="fgem-ext-body">
+					<strong class="text-primary"><?php echo htmlspecialchars($selfName, ENT_QUOTES, 'UTF-8'); ?></strong>
 					<span class="badge bg-secondary"><?php echo Text::_('COM_FGEXTENSIONMANAGER_THIS_EXTENSION'); ?></span>
+					<?php if (!empty($selfItem->repo_url)) : ?>
+						<a href="<?php echo htmlspecialchars($selfItem->repo_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="fgem-repo-link" title="<?php echo htmlspecialchars($selfItem->owner_repo, ENT_QUOTES, 'UTF-8'); ?>" aria-label="GitHub: <?php echo htmlspecialchars($selfItem->owner_repo, ENT_QUOTES, 'UTF-8'); ?>"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+					<?php endif; ?>
 					<?php if (!empty($selfItem->technical_id)) : ?>
 						<div class="small"><code><?php echo htmlspecialchars($selfItem->technical_id, ENT_QUOTES, 'UTF-8'); ?></code></div>
 					<?php endif; ?>
@@ -73,6 +83,7 @@ usort($this->items, function ($a, $b) use ($order) {
 						<?php if ($selfItem->state === 'update_available') : ?>
 							&rarr; <strong class="text-warning-emphasis"><?php echo htmlspecialchars($selfItem->available_version, ENT_QUOTES, 'UTF-8'); ?></strong>
 						<?php endif; ?>
+					</div>
 					</div>
 				</div>
 				<div class="d-flex align-items-center gap-2">
