@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.26.1
+- Fixed the list looking scrambled right after updating to 1.26.0: the browser kept using the
+  cached OLD stylesheet (7 grid columns) with the NEW markup (6 columns), so cells shifted.
+  The CSS/JS URLs now carry the files' modification time as version, so every update loads
+  fresh assets. (If you still see it once after installing 1.26.1, press Ctrl+F5 one time.)
+
 ## 1.26.0
 - New logo in the Extension column: each repo's `assets/logo.webp` is shown (falling back to
   `assets/logo.png`, then to a letter tile if neither exists), lazy-loaded.

@@ -90,8 +90,16 @@ class HtmlView extends BaseHtmlView
 		// Joomla-native confirm dialog instead of the browser's own
 		// confirm() (which looked out of place at the top of the viewport).
 		$wa = $this->getDocument()->getWebAssetManager();
-		$wa->registerAndUseScript('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.js', [], ['type' => 'module'], ['joomla.dialog']);
-		$wa->registerAndUseStyle('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.css');
+		// Explicit per-file version (file mtime) for the ?query string: with the
+		// default 'auto' Joomla only changes it with the Joomla version, so after
+		// an update of this component browsers kept serving the OLD cached
+		// CSS/JS next to the NEW markup (broken grid in 1.26.0).
+		$mediaDir   = JPATH_ROOT . '/media/com_fgextensionmanager/';
+		$jsVersion  = is_file($mediaDir . 'js/extensions.js') ? (string) filemtime($mediaDir . 'js/extensions.js') : 'auto';
+		$cssVersion = is_file($mediaDir . 'css/extensions.css') ? (string) filemtime($mediaDir . 'css/extensions.css') : 'auto';
+
+		$wa->registerAndUseScript('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.js', ['version' => $jsVersion], ['type' => 'module'], ['joomla.dialog']);
+		$wa->registerAndUseStyle('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.css', ['version' => $cssVersion]);
 		$this->getDocument()->addScriptOptions('com_fgextensionmanager.extensions', [
 			'updateAllConfirm' => Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount),
 		]);
