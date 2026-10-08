@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.26.2
+- The GitHub link next to the extension name showed two icons (the GitHub mark plus the
+  admin template's automatic "external link" icon). Only the GitHub mark is shown now.
+
 ## 1.26.1
 - Fixed the list looking scrambled right after updating to 1.26.0: the browser kept using the
   cached OLD stylesheet (7 grid columns) with the NEW markup (6 columns), so cells shifted.

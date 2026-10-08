@@ -101,6 +101,13 @@
 	color: var(--bs-secondary-color, #6c757d);
 	line-height: 1;
 }
+/* Atum decorates every target="_blank" link with an "external link" icon
+   (::before/::after) - redundant next to the GitHub mark, so suppress it. */
+#fgem-table .fgem-repo-link::before,
+#fgem-table .fgem-repo-link::after {
+	content: none !important;
+	display: none !important;
+}
 #fgem-table .fgem-repo-link:hover,
 #fgem-table .fgem-repo-link:focus {
 	color: var(--bs-body-color, #212529);
