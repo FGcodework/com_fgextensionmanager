@@ -89,6 +89,7 @@ class RepoHelper
 				'label'               => $label !== '' ? $label : $ownerRepo,
 				'source_url'          => $url,
 				'repo_url'            => 'https://github.com/' . $ownerRepo,
+				'branch'              => $branch,
 				'is_self'             => strcasecmp($ownerRepo, self::SELF_OWNER_REPO) === 0,
 				'name'                => null,
 				'description'         => null,

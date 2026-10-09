@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.26.4
+- Logos sometimes didn't all load (a few rows kept the letter tile). Logos are now requested
+  straight from raw.githubusercontent.com using each repo's real default branch (previously via
+  a github.com redirect, an extra hop that GitHub throttles when ~12 images load at once), and a
+  failed logo is retried once after 1.5 s before falling back to logo.png / the letter tile.
+
 ## 1.26.3
 - The "this extension" card at the top now shows the FG Extension Manager logo and the GitHub
   link too, matching the list rows.

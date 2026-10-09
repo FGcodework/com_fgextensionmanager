@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.webp" width="120" alt="FG Extension Manager logo">
+  <img src="assets/logo.png" width="120" alt="FG Extension Manager logo">
 </p>
 
 <h1 align="center">FG Extension Manager</h1>

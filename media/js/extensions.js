@@ -111,7 +111,22 @@ document.addEventListener('DOMContentLoaded', function () {
 		var markOk = function () {
 			tile.classList.add('fgem-logo-ok');
 		};
+		var retried = false;
 		var fail = function () {
+			// One delayed retry of the same URL first: a burst of ~12 parallel
+			// image requests to GitHub can get a few of them throttled (429)
+			// - those would otherwise stay on the letter tile until reload.
+			if (!retried) {
+				retried = true;
+				var current = img.src;
+
+				window.setTimeout(function () {
+					img.src = current + (current.indexOf('?') === -1 ? '?' : '&') + 'r=1';
+				}, 1500);
+
+				return;
+			}
+
 			var fallback = img.getAttribute('data-fgem-fallback');
 
 			if (fallback) {

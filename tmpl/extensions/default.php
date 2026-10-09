@@ -63,7 +63,7 @@ usort($this->items, function ($a, $b) use ($order) {
 			<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
 				<?php
 				$selfName     = (string) ($selfItem->name ?? $selfItem->label);
-				$selfLogoBase = 'https://github.com/' . $selfItem->owner_repo . '/raw/HEAD/assets/logo';
+				$selfLogoBase = 'https://raw.githubusercontent.com/' . $selfItem->owner_repo . '/' . (!empty($selfItem->branch) ? $selfItem->branch : 'HEAD') . '/assets/logo';
 				$selfInitial  = mb_strtoupper(mb_substr(trim((string) preg_replace('/^FG[\s_-]*/i', '', trim($selfName))) ?: '?', 0, 1));
 				?>
 				<div class="fgem-ext">
@@ -224,7 +224,7 @@ usort($this->items, function ($a, $b) use ($order) {
 				<div role="cell" data-row-start<?php echo $cellStyle; ?>>
 					<?php
 					$displayName = (string) ($item->name ?? $item->label);
-					$logoBase    = 'https://github.com/' . $item->owner_repo . '/raw/HEAD/assets/logo';
+					$logoBase    = 'https://raw.githubusercontent.com/' . $item->owner_repo . '/' . (!empty($item->branch) ? $item->branch : 'HEAD') . '/assets/logo';
 					$initial     = mb_strtoupper(mb_substr(trim((string) preg_replace('/^FG[\s_-]*/i', '', trim($displayName))) ?: '?', 0, 1));
 					?>
 					<div class="fgem-ext">
