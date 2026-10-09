@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.27.0
+- Uninstall now asks for confirmation in the same Joomla dialog as Update All (was the native
+  browser `confirm()` via an inline `onclick`, which also fails under a strict CSP).
+- Update All: asks PHP for more time (`set_time_limit`), keeps running if the tab is closed, and
+  stops cleanly BEFORE starting an item that wouldn't fit in the remaining time limit - the ones
+  not processed are listed in a warning so you can simply press Update All again.
+- Install / Update / Uninstall / Update All / Refresh show a "Working..." overlay that also blocks
+  a second click (no more accidental double install on a slow download).
+- Filter with no match shows "No extensions match the current filter." with a Clear filter
+  button; Enter in the search box no longer submits (reloads) the form.
+- Accessibility: status filter chips expose `aria-pressed`, the chip row is a labelled group,
+  the search box has an `aria-label`, and the number of shown rows is announced politely.
+
 ## 1.26.4
 - Logos sometimes didn't all load (a few rows kept the letter tile). Logos are now requested
   straight from raw.githubusercontent.com using each repo's real default branch (previously via

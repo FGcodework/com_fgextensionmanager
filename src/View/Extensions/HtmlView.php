@@ -102,6 +102,9 @@ class HtmlView extends BaseHtmlView
 		$wa->registerAndUseStyle('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.css', ['version' => $cssVersion]);
 		$this->getDocument()->addScriptOptions('com_fgextensionmanager.extensions', [
 			'updateAllConfirm' => Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount),
+			'busyText'         => Text::_('COM_FGEXTENSIONMANAGER_BUSY'),
+			// Raw template: %1$d / %2$d are replaced client-side as the filter changes.
+			'shownText'        => Text::_('COM_FGEXTENSIONMANAGER_FILTER_SHOWN'),
 		]);
 
 		$this->addToolbar($this->updateAvailableCount);

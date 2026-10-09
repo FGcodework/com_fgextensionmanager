@@ -20,15 +20,23 @@ import JoomlaDialog from 'joomla.dialog';
 
 var fgemActiveState = '';
 
+var fgemOptions = {};
+
 function fgemApplyFilters() {
 	var query = (document.getElementById('fgem-filter') || {}).value || '';
 	query = query.toLowerCase().trim();
 
-	var rows = document.querySelectorAll('#fgem-table [role="row"][data-fgem-search]');
+	var rows  = document.querySelectorAll('#fgem-table [role="row"][data-fgem-search]');
+	var shown = 0;
+
 	rows.forEach(function (row) {
 		var textMatches  = row.getAttribute('data-fgem-search').indexOf(query) !== -1;
 		var stateMatches = fgemActiveState === '' || row.getAttribute('data-fgem-state') === fgemActiveState;
 		var matches      = textMatches && stateMatches;
+
+		if (matches) {
+			shown++;
+		}
 
 		// The row wrapper is display:contents by default (see the CSS) so its
 		// cells become direct grid items - clearing to '' here would fall
@@ -42,6 +50,38 @@ function fgemApplyFilters() {
 			next.style.display = matches ? 'contents' : 'none';
 		}
 	});
+
+	// "Nothing matches" message (with a way out) instead of a blank area.
+	var noResults = document.getElementById('fgem-no-results');
+
+	if (noResults) {
+		noResults.hidden = shown !== 0;
+	}
+
+	// Screen readers: announce the result count as the filter changes.
+	var status = document.getElementById('fgem-filter-status');
+
+	if (status && fgemOptions.shownText) {
+		status.textContent = fgemOptions.shownText
+			.replace('%1$d', shown)
+			.replace('%2$d', rows.length);
+	}
+}
+
+function fgemShowBusy() {
+	if (document.getElementById('fgem-busy')) {
+		return;
+	}
+
+	// Full-page overlay: shows that something is running AND swallows further
+	// clicks, so a slow install/update can't be triggered twice by a second
+	// click on the same (or another) button.
+	var overlay = document.createElement('div');
+	overlay.id = 'fgem-busy';
+	overlay.setAttribute('role', 'alert');
+	overlay.innerHTML = '<div class="fgem-busy-box"><span class="spinner-border" aria-hidden="true"></span><span class="fgem-busy-text"></span></div>';
+	overlay.querySelector('.fgem-busy-text').textContent = fgemOptions.busyText || '';
+	document.body.appendChild(overlay);
 }
 
 // "Update All" and "Refresh" (toolbar buttons) need to set the task and
@@ -70,6 +110,7 @@ function fgemSubmitTask(task) {
 	// for this one programmatic toolbar submit.
 	taskField.disabled = false;
 	taskField.value    = task;
+	fgemShowBusy();
 	form.submit();
 }
 
@@ -154,10 +195,39 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	});
 
+	fgemOptions = window.Joomla && Joomla.getOptions ? Joomla.getOptions('com_fgextensionmanager.extensions', {}) : {};
+
 	var filterInput = document.getElementById('fgem-filter');
 
 	if (filterInput) {
 		filterInput.addEventListener('input', fgemApplyFilters);
+
+		// Enter in the search box would submit the whole form (no task) and
+		// reload the page - it's only a live filter, so swallow it.
+		filterInput.addEventListener('keydown', function (event) {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+			}
+		});
+	}
+
+	var clearButton = document.getElementById('fgem-filter-clear');
+
+	if (clearButton) {
+		clearButton.addEventListener('click', function () {
+			if (filterInput) {
+				filterInput.value = '';
+			}
+
+			var all = document.querySelector('#fgem-state-filters [data-fgem-state-filter=""]');
+
+			if (all) {
+				all.click();
+			} else {
+				fgemActiveState = '';
+				fgemApplyFilters();
+			}
+		});
 	}
 
 	var stateFilters = document.getElementById('fgem-state-filters');
@@ -167,15 +237,17 @@ document.addEventListener('DOMContentLoaded', function () {
 			chip.addEventListener('click', function () {
 				stateFilters.querySelectorAll('[data-fgem-state-filter]').forEach(function (other) {
 					other.classList.remove('active');
+					other.setAttribute('aria-pressed', 'false');
 				});
 				chip.classList.add('active');
+				chip.setAttribute('aria-pressed', 'true');
 				fgemActiveState = chip.getAttribute('data-fgem-state-filter');
 				fgemApplyFilters();
 			});
 		});
 	}
 
-	var options = window.Joomla && Joomla.getOptions ? Joomla.getOptions('com_fgextensionmanager.extensions', {}) : {};
+	var options = fgemOptions;
 
 	fgemInterceptToolbarButton('icon-loop', function () {
 		var msg = options.updateAllConfirm || '';
@@ -193,5 +265,57 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	fgemInterceptToolbarButton('icon-refresh', function () {
 		fgemSubmitTask('extensions.refresh');
+	});
+
+	// Per-row confirmations (Uninstall): a data attribute + this one listener
+	// instead of an inline onclick="return confirm(...)" - same Joomla dialog
+	// as Update All, and no inline handler for a strict CSP to block.
+	document.addEventListener('click', function (event) {
+		var button = event.target.closest ? event.target.closest('[data-fgem-confirm]') : null;
+
+		if (!button) {
+			return;
+		}
+
+		if (button.getAttribute('data-fgem-confirmed') === '1') {
+			button.removeAttribute('data-fgem-confirmed');
+
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+
+		JoomlaDialog.confirm(button.getAttribute('data-fgem-confirm') || '').then(function (result) {
+			if (!result || !button.form) {
+				return;
+			}
+
+			if (button.form.requestSubmit) {
+				// Submits WITH this button as the submitter, so its name/value
+				// and formaction are used exactly as in a normal click.
+				button.form.requestSubmit(button);
+			} else {
+				button.setAttribute('data-fgem-confirmed', '1');
+				button.click();
+			}
+		});
+	}, true);
+
+	// Any submit of the list form (Install / Update / Uninstall / toggle /
+	// toolbar actions) shows the busy overlay.
+	var adminForm = document.getElementById('adminForm');
+
+	if (adminForm) {
+		adminForm.addEventListener('submit', fgemShowBusy);
+	}
+
+	// Back/forward cache: coming back to this page must not show a stale overlay.
+	window.addEventListener('pageshow', function (event) {
+		var overlay = document.getElementById('fgem-busy');
+
+		if (event.persisted && overlay) {
+			overlay.remove();
+		}
 	});
 });

@@ -156,13 +156,14 @@ usort($this->items, function ($a, $b) use ($order) {
 	];
 	?>
 	<?php if (!empty($this->items)) : ?>
-	<div class="mb-2 d-flex flex-wrap gap-1" id="fgem-state-filters">
+	<div class="mb-2 d-flex flex-wrap gap-1" id="fgem-state-filters" role="group" aria-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_FILTER_STATE_LABEL'), ENT_QUOTES, 'UTF-8'); ?>">
 		<?php foreach ($stateChips as $stateValue => $chip) : ?>
 			<?php if ($stateValue !== '' && $chip['count'] === 0) : continue; endif; ?>
 			<button
 				type="button"
 				class="btn btn-sm <?php echo $chip['class']; ?><?php echo $stateValue === '' ? ' active' : ''; ?>"
 				data-fgem-state-filter="<?php echo htmlspecialchars($stateValue, ENT_QUOTES, 'UTF-8'); ?>"
+				aria-pressed="<?php echo $stateValue === '' ? 'true' : 'false'; ?>"
 			>
 				<?php echo Text::_($chip['label']); ?> (<?php echo $chip['count']; ?>)
 			</button>
@@ -175,6 +176,7 @@ usort($this->items, function ($a, $b) use ($order) {
 		<input
 			type="search"
 			id="fgem-filter"
+			aria-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_FILTER_PLACEHOLDER'), ENT_QUOTES, 'UTF-8'); ?>"
 			class="form-control form-control-sm"
 			style="max-width: 320px;"
 			placeholder="<?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_PLACEHOLDER'); ?>"
@@ -317,7 +319,7 @@ usort($this->items, function ($a, $b) use ($order) {
 								value="extensions.uninstall"
 								formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.uninstall&key=' . urlencode($item->key)); ?>"
 								class="btn btn-danger btn-sm"
-								onclick="return confirm(<?php echo htmlspecialchars(json_encode(Text::sprintf($uninstallConfirmKey, $item->name ?? $item->label)), ENT_QUOTES, 'UTF-8'); ?>);"
+								data-fgem-confirm="<?php echo htmlspecialchars(Text::sprintf($uninstallConfirmKey, $item->name ?? $item->label), ENT_QUOTES, 'UTF-8'); ?>"
 							>
 								<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_UNINSTALL'); ?>
 							</button>
@@ -363,7 +365,12 @@ usort($this->items, function ($a, $b) use ($order) {
 			<?php endif; ?>
 		<?php endforeach; ?>
 	</div>
+	<div id="fgem-no-results" class="py-4 text-center text-muted" hidden>
+		<?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_NO_RESULTS'); ?>
+		<button type="button" class="btn btn-link btn-sm" id="fgem-filter-clear"><?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_CLEAR'); ?></button>
 	</div>
+	</div>
+	<div id="fgem-filter-status" class="visually-hidden" role="status" aria-live="polite"></div>
 
 	<?php endif; ?>
 

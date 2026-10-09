@@ -161,6 +161,28 @@
 	}
 }
 
+/* Busy overlay while an install / update / uninstall request runs. */
+#fgem-busy {
+	position: fixed;
+	inset: 0;
+	z-index: 2000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.45);
+	cursor: progress;
+}
+#fgem-busy .fgem-busy-box {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 18px 26px;
+	border-radius: 8px;
+	background-color: var(--bs-body-bg, #fff);
+	color: var(--bs-body-color, #212529);
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
 /*
  * .bg-light is a Bootstrap utility that Bootstrap 5.3's own color-mode
  * system (confirmed in use - Atum sets data-bs-theme on <html>) is
