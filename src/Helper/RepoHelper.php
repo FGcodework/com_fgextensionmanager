@@ -211,6 +211,21 @@ class RepoHelper
 				$item->type              = $entries[0]->type;
 				$item->technical_id      = self::buildTechnicalId($entries[0]);
 				$item->type_label        = $typeWord !== null ? $typeWord . ' ' . $item->type : $item->type;
+
+				// Newest version the repo publishes at all (for display only -
+				// state stays 'incompatible', so nothing here is ever offered
+				// for install/update).
+				$newest = null;
+
+				foreach ($entries as $entry)
+				{
+					if (!empty($entry->version) && ($newest === null || version_compare($entry->version, $newest, '>')))
+					{
+						$newest = $entry->version;
+					}
+				}
+
+				$item->available_version = $newest;
 				$item->state             = 'incompatible';
 				$item->error             = Text::sprintf(
 					'COM_FGEXTENSIONMANAGER_ERROR_NOT_COMPATIBLE',

@@ -288,7 +288,21 @@ usort($this->items, function ($a, $b) use ($order) {
 					<?php endif; ?>
 				</div>
 				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php echo $item->installed_version ? htmlspecialchars($item->installed_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></div>
-				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php echo $item->available_version ? htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></div>
+				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php
+					if (!$item->available_version)
+					{
+						echo '&#8212;';
+					}
+					elseif ($item->state === 'incompatible')
+					{
+						// Newest version in the repo, but not installable on this site.
+						echo '<span class="text-muted" title="' . htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_VERSION_NOT_INSTALLABLE'), ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') . '</span>';
+					}
+					else
+					{
+						echo htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8');
+					}
+					?></div>
 				<div role="cell" class="text-end" data-row-end data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>>
 					<div>
 						<?php if ($canManage && $item->state === 'not_installed') : ?>

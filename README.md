@@ -59,6 +59,51 @@ clear message instead of a PHP fatal error later.
 | Cache Duration | 30 minutes | How long fetched `updates.xml`/`CHANGELOG.md` data is cached |
 | HTTP Timeout | 10 seconds | Timeout per request when fetching from GitHub |
 
+## Adding an extension to the list
+
+1. Give the GitHub repo the topic `fg-joomla-extension` (repo page → the gear next to *About*).
+2. Make sure the repo has an `updates.xml` in its root (or in a `joomla6/` / similar subfolder
+   for a separate build) with a `<downloadurl>` and, ideally, a `<sha512>` of the release ZIP.
+3. Optional: add a logo as `assets/logo.webp` (fallback `assets/logo.png`), 512×512 with
+   transparent corners. It is loaded from the repo's default branch; without it the list shows a
+   letter tile.
+4. Press **Refresh** in the component - the extension appears in the list.
+
+## Update All
+
+**Update All** installs every pending update one after another; this component itself is always
+updated last. It asks PHP for extra execution time and, if the host's limit is still too tight,
+stops before starting an update that wouldn't fit and lists the ones left over - press Update All
+again to finish.
+
+## Permissions
+
+| Action | Required permission |
+|---|---|
+| View the list, Refresh | `core.manage` |
+| Install, Update, Update All, Enable/Disable | `core.manage` |
+| Uninstall, Options | `core.admin` |
+
+The component can't uninstall or disable itself from its own list.
+
+## Security
+
+- Every action is protected by Joomla's CSRF token and the permissions above.
+- Download URLs must be HTTPS and on a GitHub host (allowlist), and the ZIP is verified against the
+  `sha256` / `sha384` / `sha512` checksum from the repo's `updates.xml` when one is published.
+- Nothing is installed without an explicit click (or Update All confirmation).
+
+## Troubleshooting
+
+- **The list is empty** - check Options: owner/org and topic must match the repos' GitHub topic
+  exactly (this component itself is always shown).
+- **Data looks stale** - Refresh bypasses the cache; the cache lives in Joomla's cache folder
+  (`cache/com_fgextensionmanager`) and expires after the configured number of minutes.
+- **A status says "Not compatible"** - the repo's `updates.xml` has no entry for your Joomla/PHP
+  version; the version shown in muted text is the newest the repo publishes.
+- **A logo is missing** - a repo without `assets/logo.*` (or a temporary GitHub throttle) shows a
+  letter tile; the logo is retried once automatically.
+
 ## License
 
 GNU General Public License v2.0 or later - see [LICENSE.txt](LICENSE.txt).

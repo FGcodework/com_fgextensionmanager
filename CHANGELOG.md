@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.27.1
+- "Available" column for a "Not compatible" extension now shows the newest version the repo
+  publishes (muted, with a tooltip saying it can't be installed on this site) instead of a dash.
+- README: how to add an extension (topic, `updates.xml`, logo), Update All behaviour,
+  permissions, security notes and troubleshooting.
+
 ## 1.27.0
 - Uninstall now asks for confirmation in the same Joomla dialog as Update All (was the native
   browser `confirm()` via an inline `onclick`, which also fails under a strict CSP).
