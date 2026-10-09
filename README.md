@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Joomla-5.x%20%7C%206.x-blue.svg?logo=joomla&logoColor=white" alt="Joomla">
   <img src="https://img.shields.io/badge/PHP-8.0%2B-purple.svg?logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/license-GPL--2.0%2B-green.svg" alt="License">
-  <img src="https://img.shields.io/github/downloads/FGcodework/com_fgextensionmanager/total?cacheSeconds=3600" alt="Downloads">
+  <img src="https://img.shields.io/github/downloads/FGcodework/com_fgextensionmanager/total?cacheSeconds=3600&color=brown" alt="Downloads">
 </p>
 
 A native Joomla admin component that discovers, installs, updates and uninstalls the **FG
