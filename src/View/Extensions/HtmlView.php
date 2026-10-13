@@ -9,6 +9,7 @@
 
 namespace FG\Component\FgExtensionManager\Administrator\View\Extensions;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
@@ -61,6 +62,11 @@ class HtmlView extends BaseHtmlView
 
 	public function display($tpl = null): void
 	{
+		if (!function_exists('curl_init'))
+		{
+			Factory::getApplication()->enqueueMessage(Text::_('COM_FGEXTENSIONMANAGER_ERROR_NO_CURL'), 'error');
+		}
+
 		// The "extensions.refresh" task already force-refreshes and rewrites the
 		// cache file before redirecting back here, so a plain (non-forced) read
 		// on this page load already sees the fresh data.

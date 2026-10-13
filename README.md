@@ -7,9 +7,9 @@
 <p align="center">
   <img src="https://img.shields.io/github/v/release/FGcodework/com_fgextensionmanager?color=FF6B4A&label=release" alt="Latest release">
   <img src="https://img.shields.io/badge/Joomla-5.x%20%7C%206.x-blue.svg?logo=joomla&logoColor=white" alt="Joomla">
-  <img src="https://img.shields.io/badge/PHP-8.0%2B-purple.svg?logo=php&logoColor=white" alt="PHP">
+  <img src="https://img.shields.io/badge/PHP-8.1%2B-purple.svg?logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/license-GPL--2.0%2B-green.svg" alt="License">
-  <img src="https://img.shields.io/github/downloads/FGcodework/com_fgextensionmanager/total?cacheSeconds=3600&color=brown" alt="Downloads">
+  <img src="https://img.shields.io/github/downloads/FGcodework/com_fgextensionmanager/total?cacheSeconds=3600" alt="Downloads">
 </p>
 
 A native Joomla admin component that discovers, installs, updates and uninstalls the **FG
@@ -38,7 +38,7 @@ catalog to maintain by hand.
 ## Requirements
 
 - Joomla 5.0 or newer (including Joomla 6)
-- PHP 8.0 or newer
+- PHP 8.1 or newer, with the cURL extension enabled
 
 Both are checked automatically at install time - installing on something older fails with a
 clear message instead of a PHP fatal error later.

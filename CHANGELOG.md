@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.27.2
+- Minimum PHP raised to 8.1 (what Joomla 5 itself requires); install check, `updates.xml` and
+  README now agree.
+- Install / update / uninstall are wrapped in exception handling: an unexpected error shows a
+  clear message, the downloaded ZIP and unpacked folder are cleaned up, and Update All carries on
+  with the next extension instead of aborting.
+- A package installed without a checksum in `updates.xml` is now reported with an explicit
+  "could not be verified" note.
+- Text handling (logo initial, filter text, description truncation) no longer depends on the
+  `mbstring` extension (small `TextHelper` with a safe fallback).
+- Missing PHP cURL extension: one clear error message instead of a failure per repository
+  (cURL is now listed in the requirements).
+- GitHub API rate limit (HTTP 403/429) is recognised: the error names the reset time and the
+  event is written to the Joomla log (`com_fgextensionmanager`).
+
 ## 1.27.1
 - "Available" column for a "Not compatible" extension now shows the newest version the repo
   publishes (muted, with a tooltip saying it can't be installed on this site) instead of a dash.

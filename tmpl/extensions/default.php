@@ -9,6 +9,7 @@
 
 defined('_JEXEC') or die;
 
+use FG\Component\FgExtensionManager\Administrator\Helper\TextHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
@@ -64,7 +65,7 @@ usort($this->items, function ($a, $b) use ($order) {
 				<?php
 				$selfName     = (string) ($selfItem->name ?? $selfItem->label);
 				$selfLogoBase = 'https://raw.githubusercontent.com/' . $selfItem->owner_repo . '/' . (!empty($selfItem->branch) ? $selfItem->branch : 'HEAD') . '/assets/logo';
-				$selfInitial  = mb_strtoupper(mb_substr(trim((string) preg_replace('/^FG[\s_-]*/i', '', trim($selfName))) ?: '?', 0, 1));
+				$selfInitial  = TextHelper::initial($selfName);
 				?>
 				<div class="fgem-ext">
 					<span class="fgem-logo" data-initial="<?php echo htmlspecialchars($selfInitial, ENT_QUOTES, 'UTF-8'); ?>" aria-hidden="true"><img src="<?php echo htmlspecialchars($selfLogoBase . '.webp', ENT_QUOTES, 'UTF-8'); ?>" data-fgem-fallback="<?php echo htmlspecialchars($selfLogoBase . '.png', ENT_QUOTES, 'UTF-8'); ?>" alt="" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
@@ -211,7 +212,7 @@ usort($this->items, function ($a, $b) use ($order) {
 		<?php foreach ($this->items as $i => $item) :
 			$meta = $stateMeta[$item->state] ?? $stateMeta['error'];
 			$searchText = htmlspecialchars(
-				mb_strtolower(($item->name ?? $item->label) . ' ' . ($item->technical_id ?? '') . ' ' . $item->owner_repo),
+				TextHelper::lower(($item->name ?? $item->label) . ' ' . ($item->technical_id ?? '') . ' ' . $item->owner_repo),
 				ENT_QUOTES,
 				'UTF-8'
 			);
@@ -227,7 +228,7 @@ usort($this->items, function ($a, $b) use ($order) {
 					<?php
 					$displayName = (string) ($item->name ?? $item->label);
 					$logoBase    = 'https://raw.githubusercontent.com/' . $item->owner_repo . '/' . (!empty($item->branch) ? $item->branch : 'HEAD') . '/assets/logo';
-					$initial     = mb_strtoupper(mb_substr(trim((string) preg_replace('/^FG[\s_-]*/i', '', trim($displayName))) ?: '?', 0, 1));
+					$initial     = TextHelper::initial($displayName);
 					?>
 					<div class="fgem-ext">
 						<span class="fgem-logo" data-initial="<?php echo htmlspecialchars($initial, ENT_QUOTES, 'UTF-8'); ?>" aria-hidden="true"><img src="<?php echo htmlspecialchars($logoBase . '.webp', ENT_QUOTES, 'UTF-8'); ?>" data-fgem-fallback="<?php echo htmlspecialchars($logoBase . '.png', ENT_QUOTES, 'UTF-8'); ?>" alt="" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
@@ -241,15 +242,7 @@ usort($this->items, function ($a, $b) use ($order) {
 							<?php endif; ?>
 							<?php if (!empty($item->description)) : ?>
 								<?php
-								$description = $item->description;
-								if (function_exists('mb_strlen') && mb_strlen($description) > 140)
-								{
-									$description = rtrim(mb_substr($description, 0, 140)) . '…';
-								}
-								elseif (strlen($description) > 140)
-								{
-									$description = rtrim(substr($description, 0, 140)) . '…';
-								}
+								$description = TextHelper::truncate((string) $item->description, 140);
 								?>
 								<div class="small text-muted"><?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?></div>
 							<?php endif; ?>
