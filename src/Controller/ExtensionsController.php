@@ -232,6 +232,21 @@ class ExtensionsController extends BaseController
 			opcache_reset();
 		}
 
+		// Updating many extensions means one GitHub download + install each; on
+		// a default 30 s max_execution_time that can die half way. Ask for more
+		// time (hosts may refuse - then the budget check below stops cleanly
+		// BEFORE starting an item that wouldn't fit, instead of a blank page
+		// in the middle of an install) and keep going if the tab is closed.
+		if (function_exists('set_time_limit'))
+		{
+			@set_time_limit(300);
+		}
+
+		@ignore_user_abort(true);
+
+		$startedAt = microtime(true);
+		$maxExec   = (int) ini_get('max_execution_time');   // 0 = unlimited
+
 		$catalog  = RepoHelper::getCatalog(false)->items;
 		$toUpdate = array_values(array_filter($catalog, static fn ($item) => $item->state === 'update_available'));
 
@@ -257,9 +272,19 @@ class ExtensionsController extends BaseController
 
 		$succeeded = [];
 		$failed    = [];
+		$skipped   = [];
 
 		foreach ($toUpdate as $item)
 		{
+			// One install can take ~20 s (download + extract). Don't START one
+			// that could not finish within the remaining PHP time budget.
+			if ($maxExec > 0 && (microtime(true) - $startedAt) + 25 > $maxExec)
+			{
+				$skipped[] = $item->label;
+
+				continue;
+			}
+
 			$checksums = array_filter([
 				'sha256' => $item->sha256 ?? '',
 				'sha384' => $item->sha384 ?? '',
@@ -300,6 +325,14 @@ class ExtensionsController extends BaseController
 			$this->app->enqueueMessage(
 				Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_FAILED', count($failed), implode(', ', $failed)),
 				'error'
+			);
+		}
+
+		if ($skipped)
+		{
+			$this->app->enqueueMessage(
+				Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_SKIPPED', count($skipped), implode(', ', $skipped)),
+				'warning'
 			);
 		}
 

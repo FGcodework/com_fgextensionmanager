@@ -89,6 +89,7 @@ class RepoHelper
 				'label'               => $label !== '' ? $label : $ownerRepo,
 				'source_url'          => $url,
 				'repo_url'            => 'https://github.com/' . $ownerRepo,
+				'branch'              => $branch,
 				'is_self'             => strcasecmp($ownerRepo, self::SELF_OWNER_REPO) === 0,
 				'name'                => null,
 				'description'         => null,
@@ -210,6 +211,21 @@ class RepoHelper
 				$item->type              = $entries[0]->type;
 				$item->technical_id      = self::buildTechnicalId($entries[0]);
 				$item->type_label        = $typeWord !== null ? $typeWord . ' ' . $item->type : $item->type;
+
+				// Newest version the repo publishes at all (for display only -
+				// state stays 'incompatible', so nothing here is ever offered
+				// for install/update).
+				$newest = null;
+
+				foreach ($entries as $entry)
+				{
+					if (!empty($entry->version) && ($newest === null || version_compare($entry->version, $newest, '>')))
+					{
+						$newest = $entry->version;
+					}
+				}
+
+				$item->available_version = $newest;
 				$item->state             = 'incompatible';
 				$item->error             = Text::sprintf(
 					'COM_FGEXTENSIONMANAGER_ERROR_NOT_COMPATIBLE',
@@ -659,12 +675,14 @@ class RepoHelper
 			'Accept: application/xml, text/xml, */*',
 		];
 
-		$mh      = curl_multi_init();
-		$handles = [];
+		$mh        = curl_multi_init();
+		$handles   = [];
+		$respHeads = [];
 
 		foreach ($requests as $key => $request)
 		{
 			$ch = curl_init($request['url']);
+			$respHeads[$key] = [];
 
 			curl_setopt_array($ch, [
 				CURLOPT_RETURNTRANSFER => true,
@@ -676,6 +694,7 @@ class RepoHelper
 				CURLOPT_SSL_VERIFYHOST => 2,
 				CURLOPT_ENCODING       => '',
 				CURLOPT_HTTPHEADER     => $request['headers'] ?? $defaultHeaders,
+				CURLOPT_HEADERFUNCTION => self::headerCollector($respHeads[$key]),
 			]);
 
 			curl_multi_add_handle($mh, $ch);
@@ -710,7 +729,7 @@ class RepoHelper
 			}
 			elseif ($httpCode !== 200)
 			{
-				$results[$key] = ['body' => null, 'error' => 'HTTP ' . $httpCode];
+				$results[$key] = ['body' => null, 'error' => 'HTTP ' . $httpCode . self::rateLimitNote($respHeads[$key], $httpCode, (string) $requests[$key]['url'])];
 			}
 			elseif ($body === '' || $body === false)
 			{
@@ -1191,6 +1210,47 @@ class RepoHelper
 	}
 
 	/**
+	 * Builds a short suffix explaining a GitHub rate-limit rejection (HTTP 403/429
+	 * with x-ratelimit-remaining: 0), and logs it. Returns '' for any other failure.
+	 *
+	 * @param   array<string, string>  $headers   Lower-cased response headers.
+	 */
+	private static function rateLimitNote(array $headers, int $httpCode, string $url): string
+	{
+		if (!in_array($httpCode, [403, 429], true) || ($headers['x-ratelimit-remaining'] ?? '') !== '0')
+		{
+			return '';
+		}
+
+		$reset = (int) ($headers['x-ratelimit-reset'] ?? 0);
+		$note  = ' - GitHub API rate limit exceeded' . ($reset > 0 ? ', resets at ' . gmdate('H:i', $reset) . ' UTC' : '');
+
+		Log::add('FG Extension Manager: GitHub rate limit hit for ' . $url . $note, Log::WARNING, 'com_fgextensionmanager');
+
+		return $note;
+	}
+
+	/**
+	 * Returns a header-collecting callback for CURLOPT_HEADERFUNCTION.
+	 *
+	 * @param   array<string, string>  $store
+	 */
+	private static function headerCollector(array &$store): \Closure
+	{
+		return static function ($ch, string $line) use (&$store): int
+		{
+			$parts = explode(':', $line, 2);
+
+			if (count($parts) === 2)
+			{
+				$store[strtolower(trim($parts[0]))] = trim($parts[1]);
+			}
+
+			return strlen($line);
+		};
+	}
+
+	/**
 	 * Fetches a URL with a direct curl call rather than Joomla's own HTTP
 	 * abstraction. Bypasses whatever transport Joomla would otherwise pick on
 	 * this host (curl, stream, socket) - CURLOPT_ENCODING => '' asks curl to
@@ -1213,7 +1273,8 @@ class RepoHelper
 			'Accept: application/xml, text/xml, */*',
 		];
 
-		$ch = curl_init($url);
+		$ch            = curl_init($url);
+		$responseHeads = [];
 
 		curl_setopt_array($ch, [
 			CURLOPT_RETURNTRANSFER => true,
@@ -1225,6 +1286,7 @@ class RepoHelper
 			CURLOPT_SSL_VERIFYHOST => 2,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_HTTPHEADER     => $headers,
+			CURLOPT_HEADERFUNCTION => self::headerCollector($responseHeads),
 		]);
 
 		$body      = curl_exec($ch);
@@ -1243,7 +1305,7 @@ class RepoHelper
 
 		if ($httpCode !== 200)
 		{
-			$error = 'HTTP ' . $httpCode;
+			$error = 'HTTP ' . $httpCode . self::rateLimitNote($responseHeads, $httpCode, $url);
 
 			return null;
 		}

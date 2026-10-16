@@ -14,6 +14,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Installer\InstallerHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\PluginHelper;
 
 defined('_JEXEC') or die;
@@ -40,6 +41,46 @@ class InstallHelper
 	 */
 	public static function installFromUrl(string $url, array $checksums = [], bool $isUpdate = false): array
 	{
+		// $ctx lets the catch block below clean up whatever the failed run had
+		// already created (downloaded ZIP, extracted folder) - an exception
+		// from the installer would otherwise leave both in the tmp folder, and
+		// - worse, inside Update All - abort the loop for every later item.
+		$ctx = ['file' => '', 'package' => []];
+
+		try
+		{
+			return self::runInstall($url, $checksums, $isUpdate, $ctx);
+		}
+		catch (\Throwable $e)
+		{
+			Log::add('FG Extension Manager: install/update failed with ' . get_class($e) . ': ' . $e->getMessage(), Log::ERROR, 'com_fgextensionmanager');
+
+			try
+			{
+				$package = $ctx['package'];
+				$file    = (string) ($package['packagefile'] ?? $ctx['file']);
+
+				if ($file !== '' || !empty($package['extractdir']))
+				{
+					InstallerHelper::cleanupInstall($file, (string) ($package['extractdir'] ?? ''));
+				}
+			}
+			catch (\Throwable $cleanupError)
+			{
+				// Best effort only.
+			}
+
+			return [false, Text::sprintf('COM_FGEXTENSIONMANAGER_ERROR_EXCEPTION', $e->getMessage())];
+		}
+	}
+
+	/**
+	 * @param   array  $ctx  Filled in as the run progresses (see installFromUrl()).
+	 *
+	 * @return  array{0: bool, 1: string}
+	 */
+	private static function runInstall(string $url, array $checksums, bool $isUpdate, array &$ctx): array
+	{
 		$app = Factory::getApplication();
 
 		$app->getLanguage()->load('com_installer', JPATH_ADMINISTRATOR);
@@ -54,6 +95,8 @@ class InstallHelper
 
 		$tmpPath          = $app->get('tmp_path');
 		$fullPackagePath  = rtrim($tmpPath, '/\\') . '/' . $packageFile;
+		$ctx['file']      = $fullPackagePath;
+		$verified         = false;
 
 		// Strongest available algorithm wins; the others (if also present) are ignored.
 		foreach (['sha512', 'sha384', 'sha256'] as $algo)
@@ -74,10 +117,13 @@ class InstallHelper
 				return [false, Text::_('COM_FGEXTENSIONMANAGER_ERROR_CHECKSUM')];
 			}
 
+			$verified = true;
+
 			break;
 		}
 
 		$package = InstallerHelper::unpack($fullPackagePath, true);
+		$ctx['package'] = is_array($package) ? $package : [];
 
 		if (empty($package['type']))
 		{
@@ -151,6 +197,14 @@ class InstallHelper
 				: Text::_('COM_FGEXTENSIONMANAGER_INSTALL_ERROR');
 		}
 
+		// No checksum in the repo's updates.xml: the install went ahead (the
+		// ZIP still comes from an allow-listed GitHub host over HTTPS), but say
+		// plainly that the package itself could not be verified.
+		if ($success && !$verified)
+		{
+			$messages[] = Text::_('COM_FGEXTENSIONMANAGER_WARNING_UNVERIFIED');
+		}
+
 		return [$success, implode(' ', $messages)];
 	}
 
@@ -162,6 +216,23 @@ class InstallHelper
 	 * @return  array{0: bool, 1: string}  [success, message]
 	 */
 	public static function uninstallExtension(string $type, int $extensionId): array
+	{
+		try
+		{
+			return self::runUninstall($type, $extensionId);
+		}
+		catch (\Throwable $e)
+		{
+			Log::add('FG Extension Manager: uninstall failed with ' . get_class($e) . ': ' . $e->getMessage(), Log::ERROR, 'com_fgextensionmanager');
+
+			return [false, Text::sprintf('COM_FGEXTENSIONMANAGER_ERROR_EXCEPTION', $e->getMessage())];
+		}
+	}
+
+	/**
+	 * @return  array{0: bool, 1: string}
+	 */
+	private static function runUninstall(string $type, int $extensionId): array
 	{
 		$app = Factory::getApplication();
 

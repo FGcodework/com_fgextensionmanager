@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.27.2
+- Minimum PHP raised to 8.1 (what Joomla 5 itself requires); install check, `updates.xml` and
+  README now agree.
+- Install / update / uninstall are wrapped in exception handling: an unexpected error shows a
+  clear message, the downloaded ZIP and unpacked folder are cleaned up, and Update All carries on
+  with the next extension instead of aborting.
+- A package installed without a checksum in `updates.xml` is now reported with an explicit
+  "could not be verified" note.
+- Text handling (logo initial, filter text, description truncation) no longer depends on the
+  `mbstring` extension (small `TextHelper` with a safe fallback).
+- Missing PHP cURL extension: one clear error message instead of a failure per repository
+  (cURL is now listed in the requirements).
+- GitHub API rate limit (HTTP 403/429) is recognised: the error names the reset time and the
+  event is written to the Joomla log (`com_fgextensionmanager`).
+
+## 1.27.1
+- "Available" column for a "Not compatible" extension now shows the newest version the repo
+  publishes (muted, with a tooltip saying it can't be installed on this site) instead of a dash.
+- README: how to add an extension (topic, `updates.xml`, logo), Update All behaviour,
+  permissions, security notes and troubleshooting.
+
+## 1.27.0
+- Uninstall now asks for confirmation in the same Joomla dialog as Update All (was the native
+  browser `confirm()` via an inline `onclick`, which also fails under a strict CSP).
+- Update All: asks PHP for more time (`set_time_limit`), keeps running if the tab is closed, and
+  stops cleanly BEFORE starting an item that wouldn't fit in the remaining time limit - the ones
+  not processed are listed in a warning so you can simply press Update All again.
+- Install / Update / Uninstall / Update All / Refresh show a "Working..." overlay that also blocks
+  a second click (no more accidental double install on a slow download).
+- Filter with no match shows "No extensions match the current filter." with a Clear filter
+  button; Enter in the search box no longer submits (reloads) the form.
+- Accessibility: status filter chips expose `aria-pressed`, the chip row is a labelled group,
+  the search box has an `aria-label`, and the number of shown rows is announced politely.
+
+## 1.26.4
+- Logos sometimes didn't all load (a few rows kept the letter tile). Logos are now requested
+  straight from raw.githubusercontent.com using each repo's real default branch (previously via
+  a github.com redirect, an extra hop that GitHub throttles when ~12 images load at once), and a
+  failed logo is retried once after 1.5 s before falling back to logo.png / the letter tile.
+
 ## 1.26.3
 - The "this extension" card at the top now shows the FG Extension Manager logo and the GitHub
   link too, matching the list rows.

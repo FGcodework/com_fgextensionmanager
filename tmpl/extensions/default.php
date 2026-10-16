@@ -9,6 +9,7 @@
 
 defined('_JEXEC') or die;
 
+use FG\Component\FgExtensionManager\Administrator\Helper\TextHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
@@ -63,8 +64,8 @@ usort($this->items, function ($a, $b) use ($order) {
 			<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
 				<?php
 				$selfName     = (string) ($selfItem->name ?? $selfItem->label);
-				$selfLogoBase = 'https://github.com/' . $selfItem->owner_repo . '/raw/HEAD/assets/logo';
-				$selfInitial  = mb_strtoupper(mb_substr(trim((string) preg_replace('/^FG[\s_-]*/i', '', trim($selfName))) ?: '?', 0, 1));
+				$selfLogoBase = 'https://raw.githubusercontent.com/' . $selfItem->owner_repo . '/' . (!empty($selfItem->branch) ? $selfItem->branch : 'HEAD') . '/assets/logo';
+				$selfInitial  = TextHelper::initial($selfName);
 				?>
 				<div class="fgem-ext">
 					<span class="fgem-logo" data-initial="<?php echo htmlspecialchars($selfInitial, ENT_QUOTES, 'UTF-8'); ?>" aria-hidden="true"><img src="<?php echo htmlspecialchars($selfLogoBase . '.webp', ENT_QUOTES, 'UTF-8'); ?>" data-fgem-fallback="<?php echo htmlspecialchars($selfLogoBase . '.png', ENT_QUOTES, 'UTF-8'); ?>" alt="" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
@@ -156,13 +157,14 @@ usort($this->items, function ($a, $b) use ($order) {
 	];
 	?>
 	<?php if (!empty($this->items)) : ?>
-	<div class="mb-2 d-flex flex-wrap gap-1" id="fgem-state-filters">
+	<div class="mb-2 d-flex flex-wrap gap-1" id="fgem-state-filters" role="group" aria-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_FILTER_STATE_LABEL'), ENT_QUOTES, 'UTF-8'); ?>">
 		<?php foreach ($stateChips as $stateValue => $chip) : ?>
 			<?php if ($stateValue !== '' && $chip['count'] === 0) : continue; endif; ?>
 			<button
 				type="button"
 				class="btn btn-sm <?php echo $chip['class']; ?><?php echo $stateValue === '' ? ' active' : ''; ?>"
 				data-fgem-state-filter="<?php echo htmlspecialchars($stateValue, ENT_QUOTES, 'UTF-8'); ?>"
+				aria-pressed="<?php echo $stateValue === '' ? 'true' : 'false'; ?>"
 			>
 				<?php echo Text::_($chip['label']); ?> (<?php echo $chip['count']; ?>)
 			</button>
@@ -175,6 +177,7 @@ usort($this->items, function ($a, $b) use ($order) {
 		<input
 			type="search"
 			id="fgem-filter"
+			aria-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_FILTER_PLACEHOLDER'), ENT_QUOTES, 'UTF-8'); ?>"
 			class="form-control form-control-sm"
 			style="max-width: 320px;"
 			placeholder="<?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_PLACEHOLDER'); ?>"
@@ -209,7 +212,7 @@ usort($this->items, function ($a, $b) use ($order) {
 		<?php foreach ($this->items as $i => $item) :
 			$meta = $stateMeta[$item->state] ?? $stateMeta['error'];
 			$searchText = htmlspecialchars(
-				mb_strtolower(($item->name ?? $item->label) . ' ' . ($item->technical_id ?? '') . ' ' . $item->owner_repo),
+				TextHelper::lower(($item->name ?? $item->label) . ' ' . ($item->technical_id ?? '') . ' ' . $item->owner_repo),
 				ENT_QUOTES,
 				'UTF-8'
 			);
@@ -224,8 +227,8 @@ usort($this->items, function ($a, $b) use ($order) {
 				<div role="cell" data-row-start<?php echo $cellStyle; ?>>
 					<?php
 					$displayName = (string) ($item->name ?? $item->label);
-					$logoBase    = 'https://github.com/' . $item->owner_repo . '/raw/HEAD/assets/logo';
-					$initial     = mb_strtoupper(mb_substr(trim((string) preg_replace('/^FG[\s_-]*/i', '', trim($displayName))) ?: '?', 0, 1));
+					$logoBase    = 'https://raw.githubusercontent.com/' . $item->owner_repo . '/' . (!empty($item->branch) ? $item->branch : 'HEAD') . '/assets/logo';
+					$initial     = TextHelper::initial($displayName);
 					?>
 					<div class="fgem-ext">
 						<span class="fgem-logo" data-initial="<?php echo htmlspecialchars($initial, ENT_QUOTES, 'UTF-8'); ?>" aria-hidden="true"><img src="<?php echo htmlspecialchars($logoBase . '.webp', ENT_QUOTES, 'UTF-8'); ?>" data-fgem-fallback="<?php echo htmlspecialchars($logoBase . '.png', ENT_QUOTES, 'UTF-8'); ?>" alt="" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
@@ -239,15 +242,7 @@ usort($this->items, function ($a, $b) use ($order) {
 							<?php endif; ?>
 							<?php if (!empty($item->description)) : ?>
 								<?php
-								$description = $item->description;
-								if (function_exists('mb_strlen') && mb_strlen($description) > 140)
-								{
-									$description = rtrim(mb_substr($description, 0, 140)) . '…';
-								}
-								elseif (strlen($description) > 140)
-								{
-									$description = rtrim(substr($description, 0, 140)) . '…';
-								}
+								$description = TextHelper::truncate((string) $item->description, 140);
 								?>
 								<div class="small text-muted"><?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?></div>
 							<?php endif; ?>
@@ -286,7 +281,21 @@ usort($this->items, function ($a, $b) use ($order) {
 					<?php endif; ?>
 				</div>
 				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_INSTALLED_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php echo $item->installed_version ? htmlspecialchars($item->installed_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></div>
-				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php echo $item->available_version ? htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') : '&#8212;'; ?></div>
+				<div role="cell" data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_AVAILABLE_VERSION'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>><?php
+					if (!$item->available_version)
+					{
+						echo '&#8212;';
+					}
+					elseif ($item->state === 'incompatible')
+					{
+						// Newest version in the repo, but not installable on this site.
+						echo '<span class="text-muted" title="' . htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_VERSION_NOT_INSTALLABLE'), ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8') . '</span>';
+					}
+					else
+					{
+						echo htmlspecialchars($item->available_version, ENT_QUOTES, 'UTF-8');
+					}
+					?></div>
 				<div role="cell" class="text-end" data-row-end data-label="<?php echo htmlspecialchars(Text::_('COM_FGEXTENSIONMANAGER_COL_ACTIONS'), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $cellStyle; ?>>
 					<div>
 						<?php if ($canManage && $item->state === 'not_installed') : ?>
@@ -317,7 +326,7 @@ usort($this->items, function ($a, $b) use ($order) {
 								value="extensions.uninstall"
 								formaction="<?php echo Route::_('index.php?option=com_fgextensionmanager&task=extensions.uninstall&key=' . urlencode($item->key)); ?>"
 								class="btn btn-danger btn-sm"
-								onclick="return confirm(<?php echo htmlspecialchars(json_encode(Text::sprintf($uninstallConfirmKey, $item->name ?? $item->label)), ENT_QUOTES, 'UTF-8'); ?>);"
+								data-fgem-confirm="<?php echo htmlspecialchars(Text::sprintf($uninstallConfirmKey, $item->name ?? $item->label), ENT_QUOTES, 'UTF-8'); ?>"
 							>
 								<?php echo Text::_('COM_FGEXTENSIONMANAGER_BUTTON_UNINSTALL'); ?>
 							</button>
@@ -363,7 +372,12 @@ usort($this->items, function ($a, $b) use ($order) {
 			<?php endif; ?>
 		<?php endforeach; ?>
 	</div>
+	<div id="fgem-no-results" class="py-4 text-center text-muted" hidden>
+		<?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_NO_RESULTS'); ?>
+		<button type="button" class="btn btn-link btn-sm" id="fgem-filter-clear"><?php echo Text::_('COM_FGEXTENSIONMANAGER_FILTER_CLEAR'); ?></button>
 	</div>
+	</div>
+	<div id="fgem-filter-status" class="visually-hidden" role="status" aria-live="polite"></div>
 
 	<?php endif; ?>
 

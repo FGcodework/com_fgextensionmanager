@@ -53,9 +53,9 @@ return new class () implements ServiceProviderInterface {
 			new class ($container->get(AdministratorApplication::class)) implements InstallerScriptInterface {
 				/**
 				 * Minimum PHP version this component requires (uses str_starts_with()
-				 * and other PHP 8.0+ syntax throughout).
+				 * and other PHP 8.1+ syntax throughout).
 				 */
-				private const MINIMUM_PHP = '8.0.0';
+				private const MINIMUM_PHP = '8.1.0';
 
 				/**
 				 * Minimum Joomla version this component requires - native PSR-4/

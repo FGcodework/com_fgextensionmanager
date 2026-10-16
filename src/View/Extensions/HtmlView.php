@@ -9,6 +9,7 @@
 
 namespace FG\Component\FgExtensionManager\Administrator\View\Extensions;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
@@ -61,6 +62,11 @@ class HtmlView extends BaseHtmlView
 
 	public function display($tpl = null): void
 	{
+		if (!function_exists('curl_init'))
+		{
+			Factory::getApplication()->enqueueMessage(Text::_('COM_FGEXTENSIONMANAGER_ERROR_NO_CURL'), 'error');
+		}
+
 		// The "extensions.refresh" task already force-refreshes and rewrites the
 		// cache file before redirecting back here, so a plain (non-forced) read
 		// on this page load already sees the fresh data.
@@ -102,6 +108,9 @@ class HtmlView extends BaseHtmlView
 		$wa->registerAndUseStyle('com_fgextensionmanager.extensions', 'com_fgextensionmanager/extensions.css', ['version' => $cssVersion]);
 		$this->getDocument()->addScriptOptions('com_fgextensionmanager.extensions', [
 			'updateAllConfirm' => Text::sprintf('COM_FGEXTENSIONMANAGER_UPDATE_ALL_CONFIRM', $this->updateAvailableCount),
+			'busyText'         => Text::_('COM_FGEXTENSIONMANAGER_BUSY'),
+			// Raw template: %1$d / %2$d are replaced client-side as the filter changes.
+			'shownText'        => Text::_('COM_FGEXTENSIONMANAGER_FILTER_SHOWN'),
 		]);
 
 		$this->addToolbar($this->updateAvailableCount);
