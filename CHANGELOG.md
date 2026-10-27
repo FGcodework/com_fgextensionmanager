@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.27.3
+- Display name changed to "FG Package Manager" (JED does not allow the reserved word "Extension"
+  in a listing name). The technical name `com_fgextensionmanager` is unchanged, so updates and
+  existing settings carry over.
+- Manifest: removed the `folder="admin"` reference that does not exist in the package (Joomla read
+  the files from the package root anyway, so installation is unaffected).
+- Code tidy-up so security scanners (JAMSS) no longer raise false positives: BOM stripping
+  without hex escapes, `CompatibilityEvaluator::evaluate()` renamed to `findBest()`.
+
 ## 1.27.2
 - Minimum PHP raised to 8.1 (what Joomla 5 itself requires); install check, `updates.xml` and
   README now agree.
@@ -41,7 +50,7 @@
   failed logo is retried once after 1.5 s before falling back to logo.png / the letter tile.
 
 ## 1.26.3
-- The "this extension" card at the top now shows the FG Extension Manager logo and the GitHub
+- The "this extension" card at the top now shows the FG Package Manager logo and the GitHub
   link too, matching the list rows.
 
 ## 1.26.2
@@ -210,7 +219,7 @@
 - Pulled the self row out of the main table entirely into its own card above it.
 
 ## 1.15.0 - 1.15.1
-- FG Extension Manager now tracks and displays itself, pinned to the top of the list with a
+- FG Package Manager now tracks and displays itself, pinned to the top of the list with a
   distinct visual treatment; Uninstall is never shown for it.
 
 ## 1.14.0

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/logo.png" width="120" alt="FG Extension Manager logo">
+  <img src="assets/logo.png" width="120" alt="FG Package Manager logo">
 </p>
 
-<h1 align="center">FG Extension Manager</h1>
+<h1 align="center">FG Package Manager</h1>
 
 <p align="center">
   <img src="https://img.shields.io/github/v/release/FGcodework/com_fgextensionmanager?color=FF6B4A&label=release" alt="Latest release">
@@ -47,7 +47,7 @@ clear message instead of a PHP fatal error later.
 
 1. Download the latest release ZIP from the [Releases](../../releases) page.
 2. Extensions → Install → Upload Package File.
-3. Open **Components → FG Extension Manager**, then **Options** to set the GitHub owner/org
+3. Open **Components → FG Package Manager**, then **Options** to set the GitHub owner/org
    and topic (pre-filled with sensible defaults).
 
 ## Configuration

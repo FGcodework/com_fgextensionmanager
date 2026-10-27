@@ -43,7 +43,7 @@ class CompatibilityEvaluator
 	 *
 	 * @return  array{0: object|null, 1: object|null}  [fully matching entry, platform-only-matching entry]
 	 */
-	public static function evaluate(array $entries, ?string $jVersion = null, ?string $phpVersion = null): array
+	public static function findBest(array $entries, ?string $jVersion = null, ?string $phpVersion = null): array
 	{
 		$jVersion   ??= defined('JVERSION') ? JVERSION : '0.0.0';
 		$phpVersion ??= PHP_VERSION;
@@ -93,7 +93,7 @@ class CompatibilityEvaluator
 	 * legitimate, complex patterns - far more headroom than a
 	 * three-numbers-and-some-brackets version pattern ever needs. Reject
 	 * absurdly long patterns outright, and temporarily lower both limits
-	 * for this one evaluation only, restoring them straight after - bounds
+	 * for this one check only, restoring them straight after - bounds
 	 * the worst case tightly without affecting anything else in the request.
 	 */
 	private const TARGETPLATFORM_MAX_LENGTH = 200;
@@ -124,12 +124,12 @@ class CompatibilityEvaluator
 	/**
 	 * Of all entries whose targetplatform (name+version) and php_minimum are
 	 * satisfied, the one with the highest version. Thin wrapper around
-	 * evaluate() for callers that only need the go/no-go answer (e.g.
+	 * findBest() for callers that only need the go/no-go answer (e.g.
 	 * "should fetchFallbackPaths() stop trying more paths").
 	 */
 	public static function pickBest(array $entries): ?object
 	{
-		[$best] = self::evaluate($entries);
+		[$best] = self::findBest($entries);
 
 		return $best;
 	}

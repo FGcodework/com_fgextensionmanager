@@ -53,7 +53,7 @@ class InstallHelper
 		}
 		catch (\Throwable $e)
 		{
-			Log::add('FG Extension Manager: install/update failed with ' . get_class($e) . ': ' . $e->getMessage(), Log::ERROR, 'com_fgextensionmanager');
+			Log::add('FG Package Manager: install/update failed with ' . get_class($e) . ': ' . $e->getMessage(), Log::ERROR, 'com_fgextensionmanager');
 
 			try
 			{
@@ -150,7 +150,7 @@ class InstallHelper
 		// Resetting OPcache right after a successful install/update/uninstall,
 		// not just here for self-updates: PHP compiles and caches a file's
 		// bytecode the first time it's read, and doesn't necessarily notice
-		// (depending on opcache.validate_timestamps / revalidate_freq) that
+		// (depending on the OPcache timestamp-validation settings) that
 		// the file on disk changed underneath it later in the same request
 		// or on a subsequent one. Confirmed as the actual explanation for
 		// every confusing, seemingly-random observation across a long
@@ -223,7 +223,7 @@ class InstallHelper
 		}
 		catch (\Throwable $e)
 		{
-			Log::add('FG Extension Manager: uninstall failed with ' . get_class($e) . ': ' . $e->getMessage(), Log::ERROR, 'com_fgextensionmanager');
+			Log::add('FG Package Manager: uninstall failed with ' . get_class($e) . ': ' . $e->getMessage(), Log::ERROR, 'com_fgextensionmanager');
 
 			return [false, Text::sprintf('COM_FGEXTENSIONMANAGER_ERROR_EXCEPTION', $e->getMessage())];
 		}

@@ -5,7 +5,7 @@
 	<creationDate>2026-10-08</creationDate>
 	<copyright>Copyright (C) 2026 Fero. All rights reserved.</copyright>
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
-	<version>1.27.2</version>
+	<version>1.27.3</version>
 	<description>COM_FGEXTENSIONMANAGER_XML_DESCRIPTION</description>
 	<namespace path="src">FG\Component\FgExtensionManager</namespace>
 
@@ -14,7 +14,7 @@
 		<submenu>
 			<menu view="extensions">COM_FGEXTENSIONMANAGER_MENU_EXTENSIONS</menu>
 		</submenu>
-		<files folder="admin">
+		<files>
 			<folder>language</folder>
 			<folder>services</folder>
 			<folder>src</folder>
@@ -33,6 +33,6 @@
 	</media>
 
 	<updateservers>
-		<server type="extension" priority="1" name="FG Extension Manager">https://raw.githubusercontent.com/FGcodework/com_fgextensionmanager/master/updates.xml</server>
+		<server type="extension" priority="1" name="FG Package Manager">https://raw.githubusercontent.com/FGcodework/com_fgextensionmanager/master/updates.xml</server>
 	</updateservers>
 </extension>

@@ -167,7 +167,7 @@ class RepoHelper
 				continue;
 			}
 
-			[$best, $phpMismatch] = CompatibilityEvaluator::evaluate($entries);
+			[$best, $phpMismatch] = CompatibilityEvaluator::findBest($entries);
 
 			if (!$best && $phpMismatch)
 			{
@@ -1225,7 +1225,7 @@ class RepoHelper
 		$reset = (int) ($headers['x-ratelimit-reset'] ?? 0);
 		$note  = ' - GitHub API rate limit exceeded' . ($reset > 0 ? ', resets at ' . gmdate('H:i', $reset) . ' UTC' : '');
 
-		Log::add('FG Extension Manager: GitHub rate limit hit for ' . $url . $note, Log::WARNING, 'com_fgextensionmanager');
+		Log::add('FG Package Manager: GitHub rate limit hit for ' . $url . $note, Log::WARNING, 'com_fgextensionmanager');
 
 		return $note;
 	}
@@ -1341,7 +1341,7 @@ class RepoHelper
 		if ($bytesWritten === false || $bytesWritten !== strlen($content))
 		{
 			@unlink($tmpPath);
-			Log::add('FG Extension Manager: failed writing cache file ' . $path, Log::WARNING, 'com_fgextensionmanager');
+			Log::add('FG Package Manager: failed writing cache file ' . $path, Log::WARNING, 'com_fgextensionmanager');
 
 			return;
 		}
@@ -1349,7 +1349,7 @@ class RepoHelper
 		if (!@rename($tmpPath, $path))
 		{
 			@unlink($tmpPath);
-			Log::add('FG Extension Manager: failed renaming cache temp file into place: ' . $path, Log::WARNING, 'com_fgextensionmanager');
+			Log::add('FG Package Manager: failed renaming cache temp file into place: ' . $path, Log::WARNING, 'com_fgextensionmanager');
 		}
 	}
 
@@ -1394,7 +1394,12 @@ class RepoHelper
 		}
 
 		// Defensive: strip a leading UTF-8 BOM some editors/GitHub uploads leave in place.
-		$xmlString = preg_replace('/^\xEF\xBB\xBF/', '', $xmlString);
+		$bom = pack('H*', 'EFBBBF');
+
+		if (strncmp($xmlString, $bom, 3) === 0)
+		{
+			$xmlString = substr($xmlString, 3);
+		}
 
 		$previous = libxml_use_internal_errors(true);
 		$xml      = simplexml_load_string($xmlString, \SimpleXMLElement::class, LIBXML_NONET);
