@@ -2,10 +2,10 @@
 <extension type="component" method="upgrade">
 	<name>COM_FGEXTENSIONMANAGER</name>
 	<author>Fero</author>
-	<creationDate>2026-10-08</creationDate>
+	<creationDate>2026-10-30</creationDate>
 	<copyright>Copyright (C) 2026 Fero. All rights reserved.</copyright>
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
-	<version>1.27.3</version>
+	<version>1.27.4</version>
 	<description>COM_FGEXTENSIONMANAGER_XML_DESCRIPTION</description>
 	<namespace path="src">FG\Component\FgExtensionManager</namespace>
 

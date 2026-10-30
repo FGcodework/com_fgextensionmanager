@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.27.4
+- Design aligned with the FG showcase site (fgcodework.github.io): rounded panels with soft
+  shadows, one blue accent, pill filter chips / badges / search box, uppercase muted column heads,
+  larger rounded logo tiles, and the "this extension" card styled like the site's featured card.
+  Follows Atum's light and dark mode; layout, columns and behaviour are unchanged (CSS only,
+  plus a `fgem-root` class on the form).
+
 ## 1.27.3
 - Display name changed to "FG Package Manager" (JED does not allow the reserved word "Extension"
   in a listing name). The technical name `com_fgextensionmanager` is unchanged, so updates and

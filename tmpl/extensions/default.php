@@ -48,7 +48,7 @@ usort($this->items, function ($a, $b) use ($order) {
 });
 
 ?>
-<form action="<?php echo Route::_('index.php?option=com_fgextensionmanager&view=extensions'); ?>" method="post" name="adminForm" id="adminForm">
+<form action="<?php echo Route::_('index.php?option=com_fgextensionmanager&view=extensions'); ?>" method="post" name="adminForm" id="adminForm" class="fgem-root">
 
 	<?php if ($this->stale) : ?>
 		<div class="alert alert-warning">
@@ -60,7 +60,7 @@ usort($this->items, function ($a, $b) use ($order) {
 	<?php endif; ?>
 
 	<?php if ($selfItem !== null) : ?>
-		<div class="card mb-4" style="border-left: 4px solid #FF6B4A;">
+		<div class="card mb-4 fgem-self">
 			<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
 				<?php
 				$selfName     = (string) ($selfItem->name ?? $selfItem->label);
@@ -221,7 +221,7 @@ usort($this->items, function ($a, $b) use ($order) {
 			// changelog detail "row" only ever contributes one grid item, so
 			// any positional CSS selector would drift out of sync exactly
 			// like the hidden-<tr> nth-child bug from 1.13.4).
-			$cellStyle = $i % 2 === 1 ? ' style="background-color: rgba(0,0,0,0.03);"' : '';
+			$cellStyle = $i % 2 === 1 ? ' style="background-color: var(--fgem-alt);"' : '';
 		?>
 			<div role="row" data-fgem-search="<?php echo $searchText; ?>" data-fgem-state="<?php echo htmlspecialchars($item->state, ENT_QUOTES, 'UTF-8'); ?>">
 				<div role="cell" data-row-start<?php echo $cellStyle; ?>>

@@ -194,3 +194,166 @@
 	background-color: rgba(255, 255, 255, 0.06) !important;
 	color: inherit;
 }
+
+/* ==========================================================================
+ * Look & feel shared with the FG showcase site (fgcodework.github.io):
+ * soft rounded panels, a single blue accent, pill chips/badges, uppercase
+ * muted column heads. Everything is scoped to .fgem-root and driven by
+ * variables, so Atum's light/dark mode (data-bs-theme) just flips the tokens.
+ * Layout, grid columns and JS hooks above are untouched.
+ * ========================================================================== */
+.fgem-root {
+	--fgem-accent: #1677d2;
+	--fgem-accent-soft: rgba(22, 119, 210, 0.09);
+	--fgem-accent-line: rgba(22, 119, 210, 0.28);
+	--fgem-panel: #fff;
+	--fgem-border: rgba(15, 25, 35, 0.10);
+	--fgem-border-hover: rgba(15, 25, 35, 0.20);
+	--fgem-muted: #5f6f7d;
+	--fgem-alt: rgba(15, 25, 35, 0.025);
+	--fgem-shadow: 0 12px 36px rgba(28, 55, 80, 0.08);
+	--fgem-radius: 18px;
+}
+[data-bs-theme="dark"] .fgem-root {
+	--fgem-accent: #4da3ff;
+	--fgem-accent-soft: rgba(77, 163, 255, 0.11);
+	--fgem-accent-line: rgba(77, 163, 255, 0.30);
+	--fgem-panel: #121922;
+	--fgem-border: rgba(255, 255, 255, 0.09);
+	--fgem-border-hover: rgba(255, 255, 255, 0.18);
+	--fgem-muted: #9ca8b5;
+	--fgem-alt: rgba(255, 255, 255, 0.03);
+	--fgem-shadow: 0 16px 44px rgba(0, 0, 0, 0.30);
+}
+
+/* The list panel. */
+.fgem-root #fgem-table-wrapper {
+	background-color: var(--fgem-panel);
+	border: 1px solid var(--fgem-border);
+	border-radius: var(--fgem-radius);
+	box-shadow: var(--fgem-shadow);
+	padding: 0 14px;
+	overflow: hidden;
+}
+.fgem-root #fgem-table [role="columnheader"] {
+	color: var(--fgem-muted);
+	font-size: 0.74rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	padding: 16px 8px 12px;
+	border-bottom: 1px solid var(--fgem-border);
+}
+.fgem-root #fgem-table [role="cell"] {
+	border-bottom: 1px solid var(--fgem-border);
+}
+.fgem-root #fgem-table [role="cell"][data-row-start] { padding-left: 12px; }
+.fgem-root #fgem-table [role="cell"][data-row-end] { padding-right: 12px; }
+.fgem-root #fgem-table [role="cell"] { vertical-align: middle; }
+
+/* Extension name block. */
+.fgem-root .fgem-logo {
+	flex-basis: 52px;
+	width: 52px;
+	height: 52px;
+	border-radius: 14px;
+	border: 1px solid var(--fgem-border);
+}
+.fgem-root .fgem-ext-body > strong {
+	color: var(--fgem-accent) !important;
+	font-size: 1.02rem;
+	letter-spacing: -0.01em;
+}
+.fgem-root .fgem-ext-body code {
+	color: var(--fgem-muted);
+	background: transparent;
+	padding: 0;
+}
+.fgem-root .fgem-ext-body .text-muted,
+.fgem-root .text-muted { color: var(--fgem-muted) !important; }
+
+/* Pill badges (state, protected, "this extension"). */
+.fgem-root .badge {
+	border-radius: 999px;
+	padding: 0.4em 0.8em;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+/* Buttons: same rounded, slightly bolder feel as the site's .btn. */
+.fgem-root .btn {
+	border-radius: 11px;
+	font-weight: 700;
+	transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.fgem-root .btn:not(.btn-link):hover { transform: translateY(-1px); }
+.fgem-root .btn-link { color: var(--fgem-accent); text-decoration: none; }
+.fgem-root .btn-link:hover { text-decoration: underline; }
+
+/* State filter chips: outline pills; the active one takes the accent tint. */
+.fgem-root #fgem-state-filters { gap: 8px !important; margin-bottom: 14px !important; }
+.fgem-root #fgem-state-filters .btn {
+	border-radius: 999px;
+	padding: 0.35rem 0.85rem;
+	border: 1px solid var(--fgem-border);
+	background: var(--fgem-panel);
+	color: var(--fgem-muted);
+	font-weight: 600;
+}
+.fgem-root #fgem-state-filters .btn:hover,
+.fgem-root #fgem-state-filters .btn.active,
+.fgem-root #fgem-state-filters .btn[aria-pressed="true"] {
+	color: var(--bs-body-color);
+	border-color: var(--fgem-accent-line);
+	background: var(--fgem-accent-soft);
+	transform: none;
+}
+
+/* Search box. */
+.fgem-root #fgem-filter {
+	border-radius: 999px;
+	padding-left: 14px;
+	border: 1px solid var(--fgem-border);
+	background-color: var(--fgem-panel);
+}
+.fgem-root #fgem-filter:focus {
+	border-color: var(--fgem-accent-line);
+	box-shadow: 0 0 0 3px var(--fgem-accent-soft);
+}
+
+/* "This extension" card = the site's featured card. */
+.fgem-root .fgem-self {
+	position: relative;
+	overflow: hidden;
+	border: 1px solid var(--fgem-accent-line);
+	border-radius: var(--fgem-radius);
+	background:
+		radial-gradient(circle at 100% 0%, var(--fgem-accent-soft), transparent 18rem),
+		var(--fgem-panel);
+	box-shadow: var(--fgem-shadow);
+}
+.fgem-root .fgem-self .card-body { padding: 20px 24px; }
+.fgem-root .fgem-self .badge.bg-secondary {
+	background: var(--fgem-accent-soft) !important;
+	color: var(--fgem-accent) !important;
+	border: 1px solid var(--fgem-accent-line);
+}
+
+/* Changelog drawer + alerts pick up the same radius. */
+.fgem-root .fgem-changelog-body { border-radius: 12px; margin: 4px 0 12px; }
+.fgem-root .alert { border-radius: 14px; }
+
+@media (max-width: 767.98px) {
+	.fgem-root #fgem-table-wrapper { padding: 0 12px; }
+	.fgem-root #fgem-table [role="cell"][data-row-start] { padding-left: 0; }
+}
+
+/* btn-dark would vanish on the dark panel - give it a light-on-dark surface. */
+[data-bs-theme="dark"] .fgem-root .btn-dark {
+	background-color: rgba(255, 255, 255, 0.08);
+	border-color: var(--fgem-border-hover);
+	color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .fgem-root .btn-dark:hover {
+	background-color: rgba(255, 255, 255, 0.14);
+}
