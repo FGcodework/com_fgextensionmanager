@@ -9,6 +9,7 @@
 
 namespace FG\Component\FgExtensionManager\Administrator\Helper;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\Filesystem\Folder;
 use Joomla\CMS\Language\Text;
@@ -695,7 +696,7 @@ class RepoHelper
 				CURLOPT_ENCODING       => '',
 				CURLOPT_HTTPHEADER     => $request['headers'] ?? $defaultHeaders,
 				CURLOPT_HEADERFUNCTION => self::headerCollector($respHeads[$key]),
-			]);
+			] + self::networkOptions());
 
 			curl_multi_add_handle($mh, $ch);
 			$handles[$key] = $ch;
@@ -714,18 +715,42 @@ class RepoHelper
 		}
 		while ($running > 0 && $status === CURLM_OK);
 
+		// On a handle that ran inside curl_multi, curl_errno()/curl_error() often
+		// report nothing (that is what produced a bare "HTTP 0"); the real result
+		// code only comes from curl_multi_info_read().
+		$resultCodes = [];
+
+		while (($info = curl_multi_info_read($mh)) !== false)
+		{
+			if (($info['msg'] ?? 0) === CURLMSG_DONE)
+			{
+				$resultCodes[spl_object_id($info['handle'])] = (int) $info['result'];
+			}
+		}
+
 		$results = [];
 
 		foreach ($handles as $key => $ch)
 		{
 			$body      = curl_multi_getcontent($ch);
 			$httpCode  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-			$curlErrno = curl_errno($ch);
+			$curlErrno = $resultCodes[spl_object_id($ch)] ?? curl_errno($ch);
 			$curlError = curl_error($ch);
 
-			if ($curlErrno !== 0)
+			if ($curlErrno !== 0 && in_array($curlErrno, [60, 77], true))
 			{
-				$results[$key] = ['body' => null, 'error' => 'curl error ' . $curlErrno . ': ' . $curlError];
+				// Same CA-bundle second attempt as in curlFetch(), done one by one.
+				$retryError = null;
+				$retryBody  = self::curlFetch((string) $requests[$key]['url'], $timeout, $retryError, $requests[$key]['headers'] ?? null);
+				$results[$key] = ['body' => $retryBody, 'error' => $retryBody === null ? $retryError : null];
+			}
+			elseif ($curlErrno !== 0)
+			{
+				$results[$key] = ['body' => null, 'error' => self::curlFailure($curlErrno, $curlError)];
+			}
+			elseif ($httpCode === 0)
+			{
+				$results[$key] = ['body' => null, 'error' => 'no response from the server (HTTP 0) - the connection to GitHub failed; check firewall/proxy settings'];
 			}
 			elseif ($httpCode !== 200)
 			{
@@ -1210,6 +1235,85 @@ class RepoHelper
 	}
 
 	/**
+	 * Extra cURL options derived from Joomla's own Global Configuration: the
+	 * proxy settings (Joomla's HTTP layer honours them, a raw curl call does not -
+	 * on a corporate/intranet server that alone makes every request fail with
+	 * "HTTP 0"). Returns [] when no proxy is configured.
+	 *
+	 * @return  array<int, mixed>
+	 */
+	private static function networkOptions(): array
+	{
+		try
+		{
+			$app = Factory::getApplication();
+
+			if (!(int) $app->get('proxy_enable', 0) || trim((string) $app->get('proxy_host', '')) === '')
+			{
+				return [];
+			}
+
+			$opts = [CURLOPT_PROXY => trim((string) $app->get('proxy_host')) . ':' . (int) ($app->get('proxy_port') ?: 8080)];
+
+			if ((string) $app->get('proxy_user', '') !== '')
+			{
+				$opts[CURLOPT_PROXYUSERPWD] = $app->get('proxy_user') . ':' . $app->get('proxy_pass', '');
+			}
+
+			return $opts;
+		}
+		catch (\Throwable $e)
+		{
+			return [];
+		}
+	}
+
+	/**
+	 * Path of the CA bundle shipped with Joomla (used as a second attempt when the
+	 * server's own PHP/OpenSSL has no usable CA store), or '' when none is found.
+	 */
+	private static function joomlaCaBundle(): string
+	{
+		foreach ([
+			JPATH_LIBRARIES . '/src/Http/Transport/cacert.pem',
+			JPATH_ROOT . '/vendor/composer/ca-bundle/res/cacert.pem',
+			JPATH_LIBRARIES . '/vendor/composer/ca-bundle/res/cacert.pem',
+		] as $candidate)
+		{
+			if (is_file($candidate))
+			{
+				return $candidate;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Human-readable cURL failure: number, message and hint for the usual causes.
+	 */
+	private static function curlFailure(int $errno, string $message): string
+	{
+		if ($message === '' && function_exists('curl_strerror'))
+		{
+			$message = (string) curl_strerror($errno);
+		}
+
+		$hint = '';
+
+		if (in_array($errno, [6, 7, 28], true))
+		{
+			$hint = ' - the server cannot reach GitHub (DNS, firewall, or a proxy that must be set in Global Configuration > Server > Proxy)';
+		}
+		elseif (in_array($errno, [35, 51, 58, 60, 77], true))
+		{
+			$hint = ' - TLS/certificate problem (outdated CA bundle, or HTTPS inspection by a firewall/proxy)';
+		}
+
+		return 'curl error ' . $errno . ': ' . $message . $hint;
+	}
+
+	/**
 	 * Builds a short suffix explaining a GitHub rate-limit rejection (HTTP 403/429
 	 * with x-ratelimit-remaining: 0), and logs it. Returns '' for any other failure.
 	 *
@@ -1259,7 +1363,7 @@ class RepoHelper
 	 * misconfigured/older transport can silently get wrong and return a
 	 * "200 OK" with an empty body, as seen here.
 	 */
-	private static function curlFetch(string $url, int $timeout, ?string &$error, ?array $headers = null): ?string
+	private static function curlFetch(string $url, int $timeout, ?string &$error, ?array $headers = null, string $caRetry = ''): ?string
 	{
 		if (!function_exists('curl_init'))
 		{
@@ -1287,7 +1391,7 @@ class RepoHelper
 			CURLOPT_ENCODING       => '',
 			CURLOPT_HTTPHEADER     => $headers,
 			CURLOPT_HEADERFUNCTION => self::headerCollector($responseHeads),
-		]);
+		] + self::networkOptions() + ($caRetry !== '' ? [CURLOPT_CAINFO => $caRetry] : []));
 
 		$body      = curl_exec($ch);
 		$httpCode  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -1296,9 +1400,15 @@ class RepoHelper
 		$totalTime = curl_getinfo($ch, CURLINFO_TOTAL_TIME);
 		curl_close($ch);
 
+		if (in_array($curlErrno, [60, 77], true) && !$caRetry && ($bundle = self::joomlaCaBundle()) !== '')
+		{
+			// The server's own CA store is missing/unusable: retry once with Joomla's bundle.
+			return self::curlFetch($url, $timeout, $error, $headers, $bundle);
+		}
+
 		if ($curlErrno !== 0)
 		{
-			$error = 'curl error ' . $curlErrno . ': ' . $curlError;
+			$error = self::curlFailure($curlErrno, $curlError);
 
 			return null;
 		}

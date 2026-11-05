@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.27.5
+- Fixed: a connection failure to GitHub was shown as a bare "HTTP 0". Handles run through
+  `curl_multi` do not report their error via `curl_errno()`; the real result code is now read with
+  `curl_multi_info_read()`, so the message names the actual cause (DNS, firewall, TLS ...) with a hint.
+- Joomla's proxy settings (Global Configuration > Server > Proxy) are now used for all GitHub
+  requests - on an intranet behind a proxy a plain curl call could never reach GitHub.
+- On a certificate error (curl 60/77) the request is retried once with the CA bundle shipped with
+  Joomla, for servers whose own PHP/OpenSSL has no usable CA store.
+
 ## 1.27.4
 - Design aligned with the FG showcase site (fgcodework.github.io): rounded panels with soft
   shadows, one blue accent, pill filter chips / badges / search box, uppercase muted column heads,
