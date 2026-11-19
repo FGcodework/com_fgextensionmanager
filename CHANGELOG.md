@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.27.6
+- Admin menu: the single "Extensions" sub-item is gone; the "FG Package Manager" entry now opens
+  the extension list directly (one click instead of expanding a submenu). The
+  `COM_FGEXTENSIONMANAGER_MENU_EXTENSIONS` language key is no longer used.
+
 ## 1.27.5
 - Fixed: a connection failure to GitHub was shown as a bare "HTTP 0". Handles run through
   `curl_multi` do not report their error via `curl_errno()`; the real result code is now read with
