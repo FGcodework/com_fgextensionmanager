@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.28.0
+- **Safer downloads.** The package is now downloaded by the component itself instead of Joomla's
+  `InstallerHelper::downloadPackage()`, which followed redirects without re-checking where they
+  led. Every hop must be https and on an allowed GitHub host (`github.com`, `raw.`/`objects.`/
+  `release-assets.githubusercontent.com` ... i.e. `*.githubusercontent.com`), at most 5 hops, a
+  128 MB cap, and the body must be a ZIP. Joomla's proxy setting and CA-bundle fallback apply.
+- **Package identity check.** The extracted manifest's type and element must match the extension
+  being installed/updated; a wrong or swapped ZIP is refused before Joomla's installer runs.
+- **Pending update cleared after install.** The stale row in Joomla's pending-updates list
+  (`#__updates`) is removed after a successful install/update, so System > Update stops offering
+  what was just installed.
+- **New option "Require checksum"** (off by default): when on, a release without a
+  sha256/sha384/sha512 in its `updates.xml` is not installed (also in Update All).
+- Idea source for these: review of another extension manager (Cybersalt Extensions Manager);
+  code written independently.
+
 ## 1.27.6
 - Admin menu: the single "Extensions" sub-item is gone; the "FG Package Manager" entry now opens
   the extension list directly (one click instead of expanding a submenu). The

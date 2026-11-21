@@ -38,6 +38,17 @@
 			min="1"
 			max="60"
 		/>
+		<field
+			name="require_checksum"
+			type="radio"
+			layout="joomla.form.field.radio.switcher"
+			label="COM_FGEXTENSIONMANAGER_FIELD_REQUIRE_CHECKSUM_LABEL"
+			description="COM_FGEXTENSIONMANAGER_FIELD_REQUIRE_CHECKSUM_DESC"
+			default="0"
+		>
+			<option value="0">JNO</option>
+			<option value="1">JYES</option>
+		</field>
 	</fieldset>
 
 	<fieldset name="permissions" label="JCONFIG_PERMISSIONS_LABEL" description="JCONFIG_PERMISSIONS_DESC">

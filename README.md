@@ -89,8 +89,16 @@ The component can't uninstall or disable itself from its own list.
 ## Security
 
 - Every action is protected by Joomla's CSRF token and the permissions above.
-- Download URLs must be HTTPS and on a GitHub host (allowlist), and the ZIP is verified against the
-  `sha256` / `sha384` / `sha512` checksum from the repo's `updates.xml` when one is published.
+- Download URLs must be HTTPS and on a GitHub host (allowlist). The package is downloaded by the
+  component itself and **every redirect hop is re-checked** (https, GitHub / `*.githubusercontent.com`
+  host only, at most 5 hops, 128 MB cap, body must be a ZIP).
+- The ZIP is verified against the `sha256` / `sha384` / `sha512` checksum from the repo's
+  `updates.xml` when one is published. Without one it is installed with an "unverified" warning,
+  unless **Options > Require checksum** is on - then it is refused (also in Update All).
+- The extracted package's manifest must be the extension that was requested (type and element);
+  a wrong or swapped ZIP is refused before Joomla's installer runs.
+- After a successful install/update the extension's stale row in Joomla's pending-updates list is
+  removed, so System > Update does not keep offering it.
 - Nothing is installed without an explicit click (or Update All confirmation).
 
 ## Troubleshooting

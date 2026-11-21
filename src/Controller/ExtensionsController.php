@@ -291,7 +291,7 @@ class ExtensionsController extends BaseController
 				'sha512' => $item->sha512 ?? '',
 			]);
 
-			[$success, $message] = InstallHelper::installFromUrl($item->download_url, $checksums, true);
+			[$success, $message] = InstallHelper::installFromUrl($item->download_url, $checksums, true, InstallHelper::expectedFromItem($item));
 
 			if ($success)
 			{
@@ -398,7 +398,7 @@ class ExtensionsController extends BaseController
 			'sha512' => $item->sha512 ?? '',
 		]);
 
-		[$success, $message] = InstallHelper::installFromUrl($item->download_url, $checksums, $mode === 'update');
+		[$success, $message] = InstallHelper::installFromUrl($item->download_url, $checksums, $mode === 'update', InstallHelper::expectedFromItem($item));
 
 		$this->app->enqueueMessage(
 			$item->label . ': ' . $message,

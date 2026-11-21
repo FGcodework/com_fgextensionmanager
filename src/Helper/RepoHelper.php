@@ -1131,27 +1131,15 @@ class RepoHelper
 	];
 
 	/**
-	 * Whether a URL is safe to hand to InstallerHelper::downloadPackage() -
+	 * Whether a catalog download URL is safe to use -
 	 * a server-side fetch, so this is an SSRF boundary, not just an XSS one.
 	 * Requires https:// (via isSafeExternalUrl()) AND a host from the
 	 * GitHub-only allowlist above.
 	 *
-	 * Known, accepted limitation (confirmed against Joomla core's actual
-	 * source for InstallerHelper::downloadPackage()): on a 302 response it
-	 * recursively calls itself with the raw `Location` header, with NO
-	 * host/URL re-validation on the redirect target - a URL that passes
-	 * this check could still end up fetching from somewhere else entirely
-	 * if the allowlisted host ever redirected there. This isn't unique to
-	 * this component - it's true of ANY Joomla code (including core's own
-	 * "Install from URL") that calls downloadPackage() with a URL sourced
-	 * from outside the request. Not fixed here: doing so would mean
-	 * reimplementing package downloading independently of Joomla's own
-	 * helper (its own temp-file handling, checksum hookup, redirect
-	 * following for the *legitimate* github.com -> objects.githubusercontent.com
-	 * chain, etc.), which risks introducing new bugs in exchange for
-	 * closing a gap that, for these specific first-party GitHub hosts,
-	 * would require GitHub's own infrastructure - not a malicious repo
-	 * owner - to actually redirect somewhere unsafe.
+	 * Redirects are NOT left to Joomla's InstallerHelper::downloadPackage()
+	 * (which follows a Location header without re-validating it):
+	 * InstallHelper downloads the package itself, one hop at a time, and runs
+	 * every hop through isAllowedDownloadHop() below.
 	 */
 	private static function isSafeDownloadUrl(string $url): bool
 	{
@@ -1163,6 +1151,28 @@ class RepoHelper
 		$host = strtolower((string) parse_url($url, PHP_URL_HOST));
 
 		return in_array($host, self::ALLOWED_DOWNLOAD_HOSTS, true);
+	}
+
+	/**
+	 * Whether a URL may be fetched at ANY step of a package download, redirects
+	 * included: https only, and either one of the hosts above or a
+	 * *.githubusercontent.com host. The wildcard is deliberate - GitHub serves
+	 * release assets from changing subdomains (objects., release-assets., ...),
+	 * and a hard-coded list would break installs the day it moves them again.
+	 *
+	 * @internal  Used by InstallHelper's downloader.
+	 */
+	public static function isAllowedDownloadHop(string $url): bool
+	{
+		if (!self::isSafeExternalUrl($url))
+		{
+			return false;
+		}
+
+		$host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+		return in_array($host, self::ALLOWED_DOWNLOAD_HOSTS, true)
+			|| (bool) preg_match('/^[a-z0-9-]+(\.[a-z0-9-]+)*\.githubusercontent\.com$/', $host);
 	}
 
 	/**
@@ -1242,7 +1252,7 @@ class RepoHelper
 	 *
 	 * @return  array<int, mixed>
 	 */
-	private static function networkOptions(): array
+	public static function networkOptions(): array
 	{
 		try
 		{
@@ -1272,7 +1282,7 @@ class RepoHelper
 	 * Path of the CA bundle shipped with Joomla (used as a second attempt when the
 	 * server's own PHP/OpenSSL has no usable CA store), or '' when none is found.
 	 */
-	private static function joomlaCaBundle(): string
+	public static function joomlaCaBundle(): string
 	{
 		foreach ([
 			JPATH_LIBRARIES . '/src/Http/Transport/cacert.pem',
@@ -1292,7 +1302,7 @@ class RepoHelper
 	/**
 	 * Human-readable cURL failure: number, message and hint for the usual causes.
 	 */
-	private static function curlFailure(int $errno, string $message): string
+	public static function curlFailure(int $errno, string $message): string
 	{
 		if ($message === '' && function_exists('curl_strerror'))
 		{

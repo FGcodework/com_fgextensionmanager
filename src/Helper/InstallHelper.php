@@ -10,12 +10,15 @@
 namespace FG\Component\FgExtensionManager\Administrator\Helper;
 
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Installer\InstallerHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\Database\DatabaseInterface;
+use Joomla\Database\ParameterType;
 
 defined('_JEXEC') or die;
 
@@ -25,6 +28,9 @@ defined('_JEXEC') or die;
  */
 class InstallHelper
 {
+	/** Largest package accepted (bytes). */
+	private const MAX_PACKAGE_BYTES = 134217728;
+
 	/**
 	 * @param   string       $url        Direct download URL of the install package (zip).
 	 * @param   array        $checksums  Optional expected checksums, keyed 'sha256'|'sha384'|
@@ -37,9 +43,12 @@ class InstallHelper
 	 *                                   (and the install script's update() method)
 	 *                                   instead of the Before/AfterInstall equivalents.
 	 *
+	 * @param   array        $expected   Identity the package must have, from expectedFromItem()
+	 *                                   ('type', 'element', 'folder', 'client'). Empty = no check.
+	 *
 	 * @return  array{0: bool, 1: string}  [success, message]
 	 */
-	public static function installFromUrl(string $url, array $checksums = [], bool $isUpdate = false): array
+	public static function installFromUrl(string $url, array $checksums = [], bool $isUpdate = false, array $expected = []): array
 	{
 		// $ctx lets the catch block below clean up whatever the failed run had
 		// already created (downloaded ZIP, extracted folder) - an exception
@@ -49,7 +58,7 @@ class InstallHelper
 
 		try
 		{
-			return self::runInstall($url, $checksums, $isUpdate, $ctx);
+			return self::runInstall($url, $checksums, $isUpdate, $expected, $ctx);
 		}
 		catch (\Throwable $e)
 		{
@@ -79,38 +88,45 @@ class InstallHelper
 	 *
 	 * @return  array{0: bool, 1: string}
 	 */
-	private static function runInstall(string $url, array $checksums, bool $isUpdate, array &$ctx): array
+	private static function runInstall(string $url, array $checksums, bool $isUpdate, array $expected, array &$ctx): array
 	{
 		$app = Factory::getApplication();
 
 		$app->getLanguage()->load('com_installer', JPATH_ADMINISTRATOR);
 		PluginHelper::importPlugin('installer');
 
-		$packageFile = InstallerHelper::downloadPackage($url);
-
-		if (!$packageFile)
+		// Strict mode: refuse anything the repo does not publish a checksum for.
+		if (empty($checksums) && (int) ComponentHelper::getParams('com_fgextensionmanager')->get('require_checksum', 0) === 1)
 		{
-			return [false, Text::_('COM_FGEXTENSIONMANAGER_ERROR_DOWNLOAD_FAILED')];
+			return [false, Text::_('COM_FGEXTENSIONMANAGER_ERROR_CHECKSUM_REQUIRED')];
 		}
 
-		$tmpPath          = $app->get('tmp_path');
-		$fullPackagePath  = rtrim($tmpPath, '/\\') . '/' . $packageFile;
-		$ctx['file']      = $fullPackagePath;
-		$verified         = false;
+		// Own downloader instead of InstallerHelper::downloadPackage(): that one
+		// follows redirects without re-checking where they lead.
+		$downloadError   = null;
+		$fullPackagePath = self::downloadPackage($url, (string) $app->get('tmp_path', JPATH_ROOT . '/tmp'), $downloadError);
+
+		if ($fullPackagePath === '')
+		{
+			return [false, $downloadError ?: Text::_('COM_FGEXTENSIONMANAGER_ERROR_DOWNLOAD_FAILED')];
+		}
+
+		$ctx['file'] = $fullPackagePath;
+		$verified = false;
 
 		// Strongest available algorithm wins; the others (if also present) are ignored.
 		foreach (['sha512', 'sha384', 'sha256'] as $algo)
 		{
-			$expected = $checksums[$algo] ?? '';
+			$wanted = $checksums[$algo] ?? '';
 
-			if ($expected === '')
+			if ($wanted === '')
 			{
 				continue;
 			}
 
 			$actual = @hash_file($algo, $fullPackagePath);
 
-			if (!$actual || strtolower($actual) !== strtolower($expected))
+			if (!$actual || strtolower($actual) !== strtolower($wanted))
 			{
 				@unlink($fullPackagePath);
 
@@ -133,6 +149,20 @@ class InstallHelper
 			);
 
 			return [false, Text::_('JLIB_INSTALLER_ABORT_DETECTMANIFEST')];
+		}
+
+		// The extracted manifest must be the extension we asked for - a wrong or
+		// swapped ZIP is refused before Joomla's installer sees it.
+		$mismatch = self::identityMismatch((string) $package['dir'], $expected);
+
+		if ($mismatch !== null)
+		{
+			InstallerHelper::cleanupInstall(
+				$package['packagefile'] ?? $fullPackagePath,
+				$package['extractdir'] ?? ''
+			);
+
+			return [false, Text::sprintf('COM_FGEXTENSIONMANAGER_ERROR_PACKAGE_MISMATCH', $mismatch)];
 		}
 
 		// Clear any pre-existing, unrelated messages first - getMessageQueue()
@@ -190,6 +220,11 @@ class InstallHelper
 
 		self::clearExtensionCaches();
 
+		if ($success)
+		{
+			self::forgetPendingUpdates($expected);
+		}
+
 		if (empty($messages))
 		{
 			$messages[] = $success
@@ -206,6 +241,381 @@ class InstallHelper
 		}
 
 		return [$success, implode(' ', $messages)];
+	}
+
+	/**
+	 * Identity a package must have, from a catalog item (type / element / folder / client).
+	 *
+	 * @return  array{type: string, element: string, folder: string, client: string}|array{}
+	 */
+	public static function expectedFromItem(object $item): array
+	{
+		$type    = strtolower((string) ($item->type ?? ''));
+		$element = strtolower(trim((string) ($item->element ?? '')));
+		$prefix  = ['component' => 'com_', 'module' => 'mod_', 'package' => 'pkg_'][$type] ?? null;
+
+		if ($element === '' || !in_array($type, ['component', 'module', 'plugin', 'package'], true))
+		{
+			return [];
+		}
+
+		if ($prefix !== null && !str_starts_with($element, $prefix))
+		{
+			$element = $prefix . $element;
+		}
+
+		return [
+			'type'    => $type,
+			'element' => $element,
+			'folder'  => strtolower(trim((string) ($item->folder ?? ''))),
+			'client'  => strtolower(trim((string) ($item->client ?? 'site'))),
+		];
+	}
+
+	/**
+	 * Type and element declared by the manifest in an extracted folder.
+	 *
+	 * @return  array{type: string, element: string}|null
+	 */
+	private static function manifestIdentity(string $dir): ?array
+	{
+		foreach (glob(rtrim($dir, '/\\') . '/*.xml') ?: [] as $file)
+		{
+			$previous = libxml_use_internal_errors(true);
+			$xml      = simplexml_load_file($file, \SimpleXMLElement::class, LIBXML_NONET);
+			libxml_clear_errors();
+			libxml_use_internal_errors($previous);
+
+			if (!$xml instanceof \SimpleXMLElement || $xml->getName() !== 'extension')
+			{
+				continue;
+			}
+
+			$type    = strtolower((string) $xml['type']);
+			$element = '';
+
+			if ($type === 'package')
+			{
+				$name    = strtolower(trim((string) $xml->packagename));
+				$element = $name !== '' ? 'pkg_' . $name : '';
+			}
+			elseif ($type === 'component')
+			{
+				$name    = strtolower(trim(trim((string) ($xml->element ?? '')) !== '' ? (string) $xml->element : (string) $xml->name));
+				$element = '';
+
+				if ($name !== '' && preg_match('/^[a-z0-9_-]+$/', $name))
+				{
+					$element = str_starts_with($name, 'com_') ? $name : 'com_' . $name;
+				}
+			}
+			elseif ($type === 'plugin' || $type === 'module')
+			{
+				$attribute = $type;
+
+				if ($xml->files)
+				{
+					foreach ($xml->files->children() as $child)
+					{
+						if ((string) $child[$attribute] !== '')
+						{
+							$element = strtolower((string) $child[$attribute]);
+							break;
+						}
+					}
+				}
+			}
+
+			return ['type' => $type, 'element' => $element];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Null when the extracted package is what was expected (or nothing is
+	 * expected / the manifest names no element to compare); otherwise a short
+	 * "expected X, got Y" text.
+	 *
+	 * @param   array  $expected  From expectedFromItem().
+	 */
+	private static function identityMismatch(string $dir, array $expected): ?string
+	{
+		if (empty($expected))
+		{
+			return null;
+		}
+
+		$identity = self::manifestIdentity($dir);
+
+		if ($identity === null || $identity['element'] === '')
+		{
+			// Joomla found a manifest it can install, we just could not read an
+			// element from it - do not block a legitimate package over that.
+			Log::add('FG Extension Manager: could not read the package identity of ' . $expected['element'], Log::WARNING, 'com_fgextensionmanager');
+
+			return null;
+		}
+
+		if ($identity['type'] === $expected['type'] && $identity['element'] === $expected['element'])
+		{
+			return null;
+		}
+
+		return sprintf('%s %s <> %s %s', $expected['type'], $expected['element'], $identity['type'], $identity['element']);
+	}
+
+	/**
+	 * Joomla keeps rows in #__updates until its next check, so an extension we
+	 * just updated would still be listed under System > Update. Remove them.
+	 *
+	 * @param   array  $expected  From expectedFromItem().
+	 */
+	private static function forgetPendingUpdates(array $expected): void
+	{
+		if (empty($expected))
+		{
+			return;
+		}
+
+		try
+		{
+			$db    = Factory::getContainer()->get(DatabaseInterface::class);
+			$type  = $expected['type'];
+			$el    = $expected['element'];
+			$query = $db->getQuery(true)
+				->select($db->quoteName('extension_id'))
+				->from($db->quoteName('#__extensions'))
+				->where($db->quoteName('type') . ' = :type')
+				->where($db->quoteName('element') . ' = :element')
+				->bind(':type', $type)
+				->bind(':element', $el);
+
+			if ($type === 'plugin' && $expected['folder'] !== '')
+			{
+				$folder = $expected['folder'];
+				$query->where($db->quoteName('folder') . ' = :folder')->bind(':folder', $folder);
+			}
+
+			$id = (int) $db->setQuery($query)->loadResult();
+
+			if ($id > 0)
+			{
+				$delete = $db->getQuery(true)
+					->delete($db->quoteName('#__updates'))
+					->where($db->quoteName('extension_id') . ' = :id')
+					->bind(':id', $id, ParameterType::INTEGER);
+				$db->setQuery($delete)->execute();
+			}
+		}
+		catch (\Throwable $e)
+		{
+			// Cosmetic only: Joomla drops the stale row at its next update check.
+		}
+	}
+
+	/**
+	 * Downloads the package to the tmp folder, following redirects ITSELF: every
+	 * hop must be https and an allowed GitHub host, at most 5 hops, a size cap,
+	 * and the body must look like a ZIP. Joomla's own downloader follows a
+	 * Location header without re-validating it.
+	 *
+	 * @param   callable|null  $allow  URL => bool; defaults to RepoHelper::isAllowedDownloadHop().
+	 *
+	 * @return  string  Full path of the downloaded file, '' on failure ($error says why).
+	 */
+	private static function downloadPackage(string $url, string $tmpDir, ?string &$error, ?callable $allow = null): string
+	{
+		$allow ??= [RepoHelper::class, 'isAllowedDownloadHop'];
+
+		if (!function_exists('curl_init'))
+		{
+			$error = Text::_('COM_FGEXTENSIONMANAGER_ERROR_NO_CURL');
+
+			return '';
+		}
+
+		$tmpDir = rtrim($tmpDir, '/\\');
+		$file   = $tmpDir . '/fgem_' . bin2hex(random_bytes(6)) . '.zip';
+		$caFile = '';
+
+		for ($hop = 0; $hop <= 5; $hop++)
+		{
+			if (!$allow($url))
+			{
+				@unlink($file);
+				$error = Text::sprintf('COM_FGEXTENSIONMANAGER_ERROR_DOWNLOAD_BLOCKED', (string) parse_url($url, PHP_URL_HOST));
+
+				return '';
+			}
+
+			$fh = @fopen($file, 'wb');
+
+			if ($fh === false)
+			{
+				$error = Text::sprintf('COM_FGEXTENSIONMANAGER_ERROR_TMP_NOT_WRITABLE', $tmpDir);
+
+				return '';
+			}
+
+			$written  = 0;
+			$tooBig   = false;
+			$location = '';
+			$ch       = curl_init($url);
+
+			curl_setopt_array($ch, [
+				CURLOPT_FOLLOWLOCATION => false,
+				CURLOPT_TIMEOUT        => 120,
+				CURLOPT_CONNECTTIMEOUT => 15,
+				CURLOPT_SSL_VERIFYPEER => true,
+				CURLOPT_SSL_VERIFYHOST => 2,
+				CURLOPT_HTTPHEADER     => [
+					'User-Agent: FG-Extension-Manager/' . (defined('JVERSION') ? JVERSION : '1.0'),
+					'Accept: application/octet-stream, application/zip, */*',
+				],
+				CURLOPT_HEADERFUNCTION => static function ($c, string $line) use (&$location): int
+				{
+					if (stripos($line, 'HTTP/') === 0)
+					{
+						$location = '';
+					}
+					elseif (stripos($line, 'location:') === 0)
+					{
+						$location = trim(substr($line, 9));
+					}
+
+					return strlen($line);
+				},
+				// Only a 200 body is kept; redirect/error bodies are discarded.
+				CURLOPT_WRITEFUNCTION  => static function ($c, string $data) use ($fh, &$written, &$tooBig): int
+				{
+					if ((int) curl_getinfo($c, CURLINFO_RESPONSE_CODE) !== 200)
+					{
+						return strlen($data);
+					}
+
+					$written += strlen($data);
+
+					if ($written > self::MAX_PACKAGE_BYTES)
+					{
+						$tooBig = true;
+
+						return 0;
+					}
+
+					return fwrite($fh, $data) === strlen($data) ? strlen($data) : 0;
+				},
+			] + RepoHelper::networkOptions() + ($caFile !== '' ? [CURLOPT_CAINFO => $caFile] : []));
+
+			curl_exec($ch);
+
+			$errno = curl_errno($ch);
+			$msg   = curl_error($ch);
+			$code  = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+			curl_close($ch);
+			fclose($fh);
+
+			if ($tooBig)
+			{
+				@unlink($file);
+				$error = Text::_('COM_FGEXTENSIONMANAGER_ERROR_DOWNLOAD_TOO_LARGE');
+
+				return '';
+			}
+
+			if (in_array($errno, [60, 77], true) && $caFile === '' && ($caFile = RepoHelper::joomlaCaBundle()) !== '')
+			{
+				$hop--;
+
+				continue;
+			}
+
+			if ($errno !== 0)
+			{
+				@unlink($file);
+				$error = RepoHelper::curlFailure($errno, $msg);
+
+				return '';
+			}
+
+			if (in_array($code, [301, 302, 303, 307, 308], true) && $location !== '')
+			{
+				$next = self::resolveRedirect($url, $location);
+
+				if ($next === '')
+				{
+					@unlink($file);
+					$error = Text::sprintf('COM_FGEXTENSIONMANAGER_ERROR_DOWNLOAD_BLOCKED', $location);
+
+					return '';
+				}
+
+				$url = $next;
+
+				continue;
+			}
+
+			if ($code !== 200)
+			{
+				@unlink($file);
+				$error = 'HTTP ' . $code;
+
+				return '';
+			}
+
+			$head = (string) @file_get_contents($file, false, null, 0, 4);
+
+			if (substr($head, 0, 2) !== 'PK')
+			{
+				@unlink($file);
+				$error = Text::_('COM_FGEXTENSIONMANAGER_ERROR_DOWNLOAD_NOT_ZIP');
+
+				return '';
+			}
+
+			return $file;
+		}
+
+		@unlink($file);
+		$error = Text::_('COM_FGEXTENSIONMANAGER_ERROR_DOWNLOAD_REDIRECTS');
+
+		return '';
+	}
+
+	/**
+	 * Absolute URL for a redirect's Location header; '' when it cannot be
+	 * resolved safely (relative paths, whitespace, backslashes).
+	 */
+	private static function resolveRedirect(string $from, string $location): string
+	{
+		if ($location === '' || preg_match('/[\s\\\\]/', $location))
+		{
+			return '';
+		}
+
+		if (preg_match('#^https?://#i', $location))
+		{
+			return $location;
+		}
+
+		if (str_starts_with($location, '//'))
+		{
+			return 'https:' . $location;
+		}
+
+		if (str_starts_with($location, '/'))
+		{
+			$parts = parse_url($from);
+
+			if (!is_array($parts) || empty($parts['host']))
+			{
+				return '';
+			}
+
+			return 'https://' . $parts['host'] . (!empty($parts['port']) ? ':' . (int) $parts['port'] : '') . $location;
+		}
+
+		return '';
 	}
 
 	/**
