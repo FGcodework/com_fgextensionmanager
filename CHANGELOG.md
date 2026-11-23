@@ -21,133 +21,51 @@
   the extension list directly (one click instead of expanding a submenu). The
   `COM_FGEXTENSIONMANAGER_MENU_EXTENSIONS` language key is no longer used.
 
-## 1.27.5
-- Fixed: a connection failure to GitHub was shown as a bare "HTTP 0". Handles run through
-  `curl_multi` do not report their error via `curl_errno()`; the real result code is now read with
-  `curl_multi_info_read()`, so the message names the actual cause (DNS, firewall, TLS ...) with a hint.
-- Joomla's proxy settings (Global Configuration > Server > Proxy) are now used for all GitHub
-  requests - on an intranet behind a proxy a plain curl call could never reach GitHub.
-- On a certificate error (curl 60/77) the request is retried once with the CA bundle shipped with
-  Joomla, for servers whose own PHP/OpenSSL has no usable CA store.
+## 1.27.0 - 1.27.5
+- **Update All:** asks PHP for more time, keeps running if the tab is closed, stops cleanly before an
+  item that would not fit in the remaining time (the skipped ones are listed), and carries on after
+  an item fails instead of aborting. (1.27.0, 1.27.2)
+- **UI:** the same Joomla dialog confirms Uninstall and Update All; a "Working..." overlay blocks
+  double clicks; a filter with no match says so and offers "Clear filter"; Enter in the search box
+  no longer reloads the page; status chips and the search box are accessible (`aria-pressed`,
+  labels, polite live count). (1.27.0)
+- **"Available" column** shows the newest published version for a "Not compatible" extension
+  instead of a dash. README expanded (adding an extension, Update All, permissions, security,
+  troubleshooting). (1.27.1)
+- **Robustness:** minimum PHP 8.1; install/update/uninstall catch exceptions and clean up the
+  downloaded ZIP and extracted folder; a package without a checksum is installed with an
+  "unverified" note; text handling no longer needs `mbstring`; one clear message when PHP cURL is
+  missing; GitHub API rate limit is recognised (reset time shown, logged). (1.27.2)
+- **JED / scanners:** display name is now "FG Package Manager" (JED reserves the word "Extension";
+  the technical name `com_fgextensionmanager` is unchanged); removed a manifest reference to a
+  non-existent `admin` folder; code tidied to avoid JAMSS false positives. (1.27.3)
+- **Design** aligned with the FG showcase site: rounded panels with soft shadows, one blue accent,
+  pill chips and badges, light and dark mode; layout and behaviour unchanged. (1.27.4)
+- **Network:** a failed GitHub connection now shows its real cause (DNS, firewall, TLS ...)
+  instead of a bare "HTTP 0"; Joomla's proxy settings are used for all GitHub requests; on a
+  certificate error the request is retried once with Joomla's CA bundle. (1.27.5)
 
-## 1.27.4
-- Design aligned with the FG showcase site (fgcodework.github.io): rounded panels with soft
-  shadows, one blue accent, pill filter chips / badges / search box, uppercase muted column heads,
-  larger rounded logo tiles, and the "this extension" card styled like the site's featured card.
-  Follows Atum's light and dark mode; layout, columns and behaviour are unchanged (CSS only,
-  plus a `fgem-root` class on the form).
+## 1.26.0 - 1.26.4
+- **Logos:** each repo's `assets/logo.webp` (fallback `logo.png`, then a letter tile) appears in the
+  Extension column, lazy-loaded and requested straight from `raw.githubusercontent.com` on the repo's
+  real default branch; a failed logo is retried once after 1.5 s. (1.26.0, 1.26.4)
+- The Repository column is gone; the GitHub repo is a small icon link next to the name (only the
+  GitHub mark - the admin template's extra "external link" icon is hidden). The "this extension" card
+  shows the logo and link too. (1.26.0, 1.26.2, 1.26.3)
+- CSS/JS URLs carry the files' modification time as version, so a stale cached stylesheet can no
+  longer scramble the list right after an update. (1.26.1)
 
-## 1.27.3
-- Display name changed to "FG Package Manager" (JED does not allow the reserved word "Extension"
-  in a listing name). The technical name `com_fgextensionmanager` is unchanged, so updates and
-  existing settings carry over.
-- Manifest: removed the `folder="admin"` reference that does not exist in the package (Joomla read
-  the files from the package root anyway, so installation is unaffected).
-- Code tidy-up so security scanners (JAMSS) no longer raise false positives: BOM stripping
-  without hex escapes, `CompatibilityEvaluator::evaluate()` renamed to `findBest()`.
-
-## 1.27.2
-- Minimum PHP raised to 8.1 (what Joomla 5 itself requires); install check, `updates.xml` and
-  README now agree.
-- Install / update / uninstall are wrapped in exception handling: an unexpected error shows a
-  clear message, the downloaded ZIP and unpacked folder are cleaned up, and Update All carries on
-  with the next extension instead of aborting.
-- A package installed without a checksum in `updates.xml` is now reported with an explicit
-  "could not be verified" note.
-- Text handling (logo initial, filter text, description truncation) no longer depends on the
-  `mbstring` extension (small `TextHelper` with a safe fallback).
-- Missing PHP cURL extension: one clear error message instead of a failure per repository
-  (cURL is now listed in the requirements).
-- GitHub API rate limit (HTTP 403/429) is recognised: the error names the reset time and the
-  event is written to the Joomla log (`com_fgextensionmanager`).
-
-## 1.27.1
-- "Available" column for a "Not compatible" extension now shows the newest version the repo
-  publishes (muted, with a tooltip saying it can't be installed on this site) instead of a dash.
-- README: how to add an extension (topic, `updates.xml`, logo), Update All behaviour,
-  permissions, security notes and troubleshooting.
-
-## 1.27.0
-- Uninstall now asks for confirmation in the same Joomla dialog as Update All (was the native
-  browser `confirm()` via an inline `onclick`, which also fails under a strict CSP).
-- Update All: asks PHP for more time (`set_time_limit`), keeps running if the tab is closed, and
-  stops cleanly BEFORE starting an item that wouldn't fit in the remaining time limit - the ones
-  not processed are listed in a warning so you can simply press Update All again.
-- Install / Update / Uninstall / Update All / Refresh show a "Working..." overlay that also blocks
-  a second click (no more accidental double install on a slow download).
-- Filter with no match shows "No extensions match the current filter." with a Clear filter
-  button; Enter in the search box no longer submits (reloads) the form.
-- Accessibility: status filter chips expose `aria-pressed`, the chip row is a labelled group,
-  the search box has an `aria-label`, and the number of shown rows is announced politely.
-
-## 1.26.4
-- Logos sometimes didn't all load (a few rows kept the letter tile). Logos are now requested
-  straight from raw.githubusercontent.com using each repo's real default branch (previously via
-  a github.com redirect, an extra hop that GitHub throttles when ~12 images load at once), and a
-  failed logo is retried once after 1.5 s before falling back to logo.png / the letter tile.
-
-## 1.26.3
-- The "this extension" card at the top now shows the FG Package Manager logo and the GitHub
-  link too, matching the list rows.
-
-## 1.26.2
-- The GitHub link next to the extension name showed two icons (the GitHub mark plus the
-  admin template's automatic "external link" icon). Only the GitHub mark is shown now.
-
-## 1.26.1
-- Fixed the list looking scrambled right after updating to 1.26.0: the browser kept using the
-  cached OLD stylesheet (7 grid columns) with the NEW markup (6 columns), so cells shifted.
-  The CSS/JS URLs now carry the files' modification time as version, so every update loads
-  fresh assets. (If you still see it once after installing 1.26.1, press Ctrl+F5 one time.)
-
-## 1.26.0
-- New logo in the Extension column: each repo's `assets/logo.webp` is shown (falling back to
-  `assets/logo.png`, then to a letter tile if neither exists), lazy-loaded.
-- Removed the Repository column; the GitHub repo is now a small icon link next to the extension
-  name (tooltip shows `owner/repo`). Search by `owner/repo` still works. The freed width went
-  to the Extension column.
-
-## 1.25.8
-- Clarified the GitHub Owner/Org and Topic field descriptions in Options: they're still
-  editable (this is the intended way to reuse this component for a different GitHub account's
-  extensions if you ever fork it), but now explicitly warn that changing them can make the
-  list come back empty - safe to try and revert, since self always shows regardless.
-
-## 1.25.7
-- Fixed "Database not set in Joomla\CMS\Installer\Installer" on Joomla 6, which had persisted
-  through several attempted fixes since 1.23.0 (a `new Installer()` change, then a
-  `setDatabase()` call, then a revert back to `Installer::getInstance()`). Root cause was PHP
-  OPcache serving stale, previously-compiled bytecode after this component overwrote its own
-  files during a self-update - not the Installer/database logic itself, which was never
-  actually at fault. Fixed by calling `opcache_reset()` after every install/update/uninstall.
-
-## 1.25.4
-- Reverted 1.23.0's `new Installer()` change back to `Installer::getInstance()` after 1.25.3's
-  attempted fix for it didn't resolve the underlying issue (see 1.25.7 for the real cause).
-
-## 1.25.3
-- Added an explicit `setDatabase()` call after `new Installer()`, working around a separate,
-  confirmed Joomla 6.0 core regression (joomla-cms#45653) - didn't end up being the actual fix
-  needed (see 1.25.4/1.25.7).
-
-## 1.25.2
-- "Update All"'s confirm dialog now uses `JoomlaDialog.confirm()` (Joomla's own dialog web
-  component) instead of the browser's native `confirm()`, matching the admin UI's styling.
-
-## 1.25.1
-- Fixed the extensions list visually blending into the page background after the 1.22.0 CSS
-  Grid rewrite (a real `<table>` gets a background/border for free from base template CSS that
-  a `[role="table"]` div doesn't) - added explicit card-style framing.
-
-## 1.25.0
-- Filter placeholder now mentions it also matches technical ID and repository, not just name.
-- Added state filter chips (All / Update available / Installed / Not installed / Incompatible)
-  with live counts, above the text filter.
-- The self card now shows its own error/incompatible message, matching the table.
-- Removed an unused language key and updated `creationDate`.
-- Moved the inline `<style>` block to `media/css/extensions.css` via WebAssetManager.
-- Disabled `.table-responsive`'s horizontal scroll specifically below the mobile card-stacking
-  breakpoint, where it no longer serves a purpose.
+## 1.25.0 - 1.25.8
+- **Joomla 6 "Database not set in Installer" fixed** (1.25.3 - 1.25.7): the real cause was PHP OPcache
+  serving stale bytecode after the component overwrote its own files during a self-update, not the
+  installer logic. `opcache_reset()` now runs after every install/update/uninstall.
+- **UI:** state filter chips (All / Update available / Installed / Not installed / Incompatible)
+  with live counts; Update All confirms in Joomla's own dialog (`JoomlaDialog.confirm()`); explicit
+  card-style framing for the list after the CSS Grid rewrite; the self card shows its own
+  error/incompatible message; the inline `<style>` moved to `media/css/extensions.css`, and
+  `.table-responsive` scrolling is disabled below the mobile breakpoint. (1.25.0, 1.25.1, 1.25.2)
+- Clearer Options text for GitHub Owner/Org and Topic (editable, but changing them can empty the
+  list; this extension always shows). (1.25.8)
 
 ## 1.24.0
 - Moved all inline `<script>`/`oninput=` JS to an external `media/js/extensions.js`, registered
